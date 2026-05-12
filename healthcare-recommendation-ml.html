@@ -1,0 +1,1238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HealthRec — Healthcare Recommendation System</title>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+:root {
+  --white:#1a1f2e; --off:#151b29; --paper:#1e2538;
+  --ink:#e8eeff; --ink2:#a8b4d0; --ink3:#5d6b8a; --line:#2a3350;
+  --blue:#60a5fa; --blue2:#3b82f6; --blue-bg:rgba(59,130,246,0.12); --blue-light:#93c5fd;
+  --red:#f87171; --red-bg:rgba(248,113,113,0.12); --green:#4ade80; --green-bg:rgba(74,222,128,0.12);
+  --amber:#fbbf24; --amber-bg:rgba(251,191,36,0.12); --purple:#a78bfa; --purple-bg:rgba(167,139,250,0.12);
+  --radius:12px; --radius-sm:8px;
+  --font-head:'Lora',serif; --font-body:'IBM Plex Sans',sans-serif; --font-mono:'IBM Plex Mono',monospace;
+  --shadow-sm:0 1px 8px rgba(0,0,0,0.4); --shadow:0 4px 24px rgba(0,0,0,0.5); --shadow-lg:0 12px 48px rgba(0,0,0,0.6);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:var(--font-body);font-size:14px;line-height:1.6;min-height:100vh;overflow-x:hidden;color:var(--ink);}
+.bg-scene{position:fixed;inset:0;z-index:0;background:#050810;}
+.bg-scene::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 50% at 20% 20%,rgba(37,99,235,0.18) 0%,transparent 60%),radial-gradient(ellipse 60% 40% at 80% 80%,rgba(124,58,237,0.14) 0%,transparent 55%),radial-gradient(ellipse 50% 60% at 60% 10%,rgba(6,182,212,0.10) 0%,transparent 50%),radial-gradient(ellipse 70% 40% at 10% 80%,rgba(22,163,74,0.08) 0%,transparent 50%);animation:auroraShift 20s ease-in-out infinite alternate;}
+@keyframes auroraShift{0%{opacity:1;transform:scale(1) rotate(0deg);}50%{opacity:0.7;transform:scale(1.08) rotate(1deg);}100%{opacity:1;transform:scale(1.04) rotate(-1deg);}}
+.bg-scene::after{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(96,165,250,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,0.04) 1px,transparent 1px),linear-gradient(rgba(96,165,250,0.015) 1px,transparent 1px),linear-gradient(90deg,rgba(96,165,250,0.015) 1px,transparent 1px);background-size:80px 80px,80px 80px,20px 20px,20px 20px;animation:gridDrift 80s linear infinite;}
+@keyframes gridDrift{from{background-position:0 0,0 0,0 0,0 0}to{background-position:80px 80px,80px 80px,20px 20px,20px 20px}}
+.blob{position:absolute;border-radius:50%;filter:blur(80px);animation:blobFloat 25s ease-in-out infinite;pointer-events:none;}
+.b1{width:700px;height:700px;background:rgba(37,99,235,0.20);top:-250px;left:-200px;animation-delay:0s;}
+.b2{width:500px;height:500px;background:rgba(124,58,237,0.18);top:15%;right:-180px;animation-delay:-8s;}
+.b3{width:450px;height:450px;background:rgba(6,182,212,0.12);bottom:-150px;left:15%;animation-delay:-16s;}
+.b4{width:350px;height:350px;background:rgba(22,163,74,0.10);bottom:5%;right:10%;animation-delay:-5s;}
+.b5{width:280px;height:280px;background:rgba(236,72,153,0.10);top:45%;left:8%;animation-delay:-12s;}
+.b6{width:240px;height:240px;background:rgba(251,191,36,0.08);top:30%;left:45%;animation-delay:-20s;}
+@keyframes blobFloat{0%,100%{transform:translate(0,0) scale(1);}25%{transform:translate(35px,-25px) scale(1.09);}50%{transform:translate(-18px,22px) scale(0.94);}75%{transform:translate(20px,12px) scale(1.05);}}
+#bg-canvas{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0.9;}
+
+/* LOGIN */
+#login-page{position:fixed;inset:0;z-index:200;display:flex;align-items:center;justify-content:center;transition:opacity .5s ease,transform .5s ease;}
+#login-page.hiding{opacity:0;transform:scale(1.05) translateY(-14px);pointer-events:none;}
+#login-page.gone{display:none;}
+.auth-wrap{display:flex;width:820px;max-width:96vw;min-height:480px;border-radius:24px;overflow:hidden;box-shadow:0 32px 80px rgba(37,99,235,0.18),0 0 0 1px rgba(255,255,255,0.05) inset;animation:authAppear .6s cubic-bezier(.22,.68,0,1.15) both;}
+@keyframes authAppear{from{opacity:0;transform:translateY(32px) scale(0.95)}to{opacity:1;transform:translateY(0) scale(1)}}
+.auth-left{flex:1;background:linear-gradient(150deg,#1d4ed8 0%,#2563eb 40%,#7c3aed 100%);padding:44px 40px;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden;}
+.auth-left::before{content:'';position:absolute;inset:0;background-image:radial-gradient(circle,rgba(255,255,255,0.08) 1px,transparent 1px);background-size:22px 22px;}
+.auth-left-logo{display:flex;align-items:center;gap:10px;position:relative;}
+.auth-left-icon{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,0.2);display:flex;align-items:center;justify-content:center;font-size:20px;color:white;border:1px solid rgba(255,255,255,0.3);}
+.auth-left-body{position:relative;}
+.auth-left-body h2{font-family:var(--font-head);font-size:28px;color:white;margin-bottom:12px;line-height:1.25;}
+.auth-left-body p{font-size:13px;color:rgba(255,255,255,0.75);line-height:1.65;}
+.auth-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.25);border-radius:20px;padding:5px 14px;font-size:11px;color:rgba(255,255,255,0.9);font-weight:500;margin-top:20px;}
+.auth-pill::before{content:'';width:6px;height:6px;border-radius:50%;background:#4ade80;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.auth-stats{display:flex;gap:20px;margin-top:24px;}
+.auth-stat-val{font-family:var(--font-head);font-size:22px;color:white;}
+.auth-stat-lbl{font-size:10px;color:rgba(255,255,255,0.6);text-transform:uppercase;letter-spacing:.05em;}
+.auth-right{width:360px;flex-shrink:0;background:rgba(10,14,25,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);padding:36px 32px;display:flex;flex-direction:column;}
+.auth-title{font-family:var(--font-head);font-size:21px;color:var(--ink);margin-bottom:4px;}
+.auth-sub{font-size:13px;color:var(--ink3);margin-bottom:22px;}
+.auth-tabs{display:flex;background:rgba(255,255,255,0.05);border-radius:8px;padding:4px;margin-bottom:20px;}
+.auth-tab{flex:1;padding:8px;text-align:center;font-size:13px;font-weight:600;border:none;background:none;cursor:pointer;border-radius:6px;color:var(--ink3);font-family:var(--font-body);transition:all .2s;}
+.auth-tab.active{background:rgba(96,165,250,0.15);color:var(--blue);box-shadow:0 1px 8px rgba(0,0,0,0.3);}
+.auth-field{margin-bottom:13px;}
+.auth-field label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:5px;}
+.auth-field input{width:100%;padding:10px 12px;font-size:13px;border:1.5px solid var(--line);border-radius:8px;background:rgba(255,255,255,0.05);color:var(--ink);font-family:var(--font-body);outline:none;transition:border-color .2s,box-shadow .2s,background .2s;}
+.auth-field input:focus{border-color:var(--blue);background:rgba(96,165,250,0.08);box-shadow:0 0 0 3px rgba(96,165,250,0.15);}
+.auth-btn{width:100%;padding:11px;font-size:14px;font-weight:600;border:none;border-radius:8px;cursor:pointer;font-family:var(--font-body);background:linear-gradient(135deg,#2563eb,#60a5fa);color:white;margin-top:4px;box-shadow:0 4px 18px rgba(37,99,235,0.4);transition:all .2s;}
+.auth-btn:hover{transform:translateY(-1px);box-shadow:0 6px 26px rgba(96,165,250,0.5);}
+.auth-btn:active{transform:scale(0.98);}
+.auth-error{background:rgba(248,113,113,0.12);color:var(--red);font-size:12px;padding:8px 12px;border-radius:6px;margin-bottom:12px;border:1px solid rgba(248,113,113,0.25);display:none;animation:shakeX .4s ease;}
+.auth-error.show{display:block;}
+@keyframes shakeX{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
+.demo-hint{font-size:11px;color:var(--ink3);text-align:center;margin-top:12px;line-height:1.6;}
+.demo-hint code{background:rgba(255,255,255,0.07);color:var(--blue);padding:1px 5px;border-radius:4px;font-family:var(--font-mono);font-size:10px;}
+@media(max-width:640px){.auth-left{display:none;}.auth-wrap{width:95vw;}.auth-right{width:100%;}}
+
+/* APP SHELL */
+#app-shell{position:relative;z-index:1;min-height:100vh;opacity:0;transform:translateY(10px);transition:opacity .5s ease,transform .5s ease;pointer-events:none;display:flex;flex-direction:column;}
+#app-shell.visible{opacity:1;transform:translateY(0);pointer-events:all;}
+
+/* NAV */
+nav{background:rgba(5,8,16,0.75);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border-bottom:1px solid rgba(96,165,250,0.12);padding:0 32px;display:flex;align-items:center;justify-content:space-between;height:58px;position:sticky;top:0;z-index:100;box-shadow:0 1px 30px rgba(0,0,0,0.5);}
+nav.scrolled{box-shadow:0 2px 40px rgba(0,0,0,0.7),0 0 0 1px rgba(96,165,250,0.08);}
+.nav-brand{display:flex;align-items:center;gap:10px;}
+.nav-brand-icon{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#2563eb,#60a5fa);display:flex;align-items:center;justify-content:center;color:white;font-size:15px;box-shadow:0 2px 14px rgba(96,165,250,0.35);}
+.nav-brand-name{font-family:var(--font-head);font-size:18px;color:var(--ink);}
+.nav-brand-name span{color:var(--blue);}
+.nav-links{display:flex;gap:2px;}
+.nav-btn{background:none;border:none;padding:7px 14px;border-radius:7px;font-size:12px;font-weight:500;color:var(--ink2);cursor:pointer;font-family:var(--font-body);transition:background .15s,color .15s;white-space:nowrap;}
+.nav-btn:hover{background:rgba(96,165,250,0.1);color:var(--ink);}
+.nav-btn.active{background:rgba(96,165,250,0.15);color:var(--blue);font-weight:600;}
+.nav-right{display:flex;align-items:center;gap:12px;}
+.nav-status{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--green);font-weight:500;}
+.nav-status::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;box-shadow:0 0 6px rgba(74,222,128,0.6);}
+.nav-user{display:flex;align-items:center;gap:8px;padding:5px 12px 5px 5px;border-radius:20px;border:1px solid var(--line);background:rgba(255,255,255,0.04);cursor:default;}
+.nav-user-avatar{width:26px;height:26px;border-radius:50%;background:linear-gradient(135deg,#2563eb,#818cf8);display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700;}
+.nav-user-name{font-size:12px;font-weight:600;color:var(--ink);}
+.nav-logout{background:none;border:none;font-size:12px;color:var(--ink3);cursor:pointer;font-family:var(--font-body);padding:0;transition:color .15s;}
+.nav-logout:hover{color:var(--red);}
+
+/* LAYOUT */
+.wrapper{flex:1;max-width:1180px;margin:0 auto;padding:28px 24px 64px;position:relative;z-index:1;}
+.page-header{margin-bottom:28px;}
+.page-header h1{font-family:var(--font-head);font-size:26px;font-weight:600;color:var(--ink);margin-bottom:4px;}
+.page-header p{color:var(--ink3);font-size:13px;}
+
+/* STATS */
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:22px;}
+.stat-box{background:rgba(255,255,255,0.04);backdrop-filter:blur(14px);border:1px solid rgba(96,165,250,0.12);border-radius:var(--radius);padding:16px 18px;transition:transform .4s cubic-bezier(.34,1.56,.64,1),box-shadow .3s;position:relative;overflow:hidden;}
+.stat-box::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--blue),#a78bfa,transparent);opacity:0;transition:opacity .3s;}
+.stat-box:hover{transform:translateY(-5px) scale(1.03);box-shadow:0 14px 40px rgba(96,165,250,0.12);}
+.stat-box:hover::before{opacity:1;}
+.stat-label{font-size:11px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink3);margin-bottom:6px;}
+.stat-val{font-family:var(--font-head);font-size:26px;color:var(--ink);line-height:1;margin-bottom:4px;}
+.stat-delta{font-size:11px;}
+.up{color:var(--green);}.down{color:var(--red);}
+
+/* PANEL */
+.tab-panel{display:none;}
+.tab-panel.active{display:block;animation:pageEnter .45s cubic-bezier(.25,.46,.45,.94) both;}
+@keyframes pageEnter{from{opacity:0;transform:translateY(18px) scale(0.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+
+/* CARDS */
+.card{background:rgba(255,255,255,0.04);backdrop-filter:blur(14px);border:1px solid rgba(96,165,250,0.12);border-radius:var(--radius);padding:18px 20px;transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .35s,border-color .35s;}
+.card:hover{transform:translateY(-4px) scale(1.008);box-shadow:0 20px 50px rgba(0,0,0,0.5),0 0 0 1px rgba(96,165,250,0.15) inset;border-color:rgba(96,165,250,0.25);}
+.card-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--line);}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+
+/* FORM */
+.patient-form{background:rgba(255,255,255,0.04);backdrop-filter:blur(14px);border:1px solid rgba(96,165,250,0.12);border-radius:var(--radius);padding:22px;margin-bottom:20px;box-shadow:var(--shadow-sm);}
+.form-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+.form-header h2{font-family:var(--font-head);font-size:18px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+.form-row.four{grid-template-columns:1fr 1fr 1fr 1fr;}
+.form-row.two{grid-template-columns:1fr 1fr;}
+.field label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:5px;}
+.field input,.field select{width:100%;padding:9px 11px;font-size:13px;border:1.5px solid var(--line);border-radius:7px;background:rgba(255,255,255,0.05);color:var(--ink);font-family:var(--font-body);outline:none;transition:border-color .2s,box-shadow .2s,background .2s;}
+.field input:focus,.field select:focus{border-color:var(--blue);background:rgba(96,165,250,0.08);box-shadow:0 0 0 3px rgba(96,165,250,0.15);}
+.field input.highlight{border-color:var(--blue);background:var(--blue-bg);}
+.field select option{background:#1a1f2e;color:var(--ink);}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:var(--font-body);transition:all .2s;}
+.btn-blue{background:linear-gradient(135deg,#2563eb,#60a5fa);color:white;box-shadow:0 3px 14px rgba(37,99,235,0.35);}
+.btn-blue:hover{transform:translateY(-1px);box-shadow:0 5px 20px rgba(96,165,250,0.45);}
+.btn-outline{background:transparent;color:var(--ink2);border:1px solid var(--line);}
+.btn-outline:hover{border-color:rgba(96,165,250,0.4);color:var(--ink);background:rgba(96,165,250,0.08);}
+.btn-danger{background:rgba(248,113,113,0.12);color:var(--red);border:1px solid rgba(248,113,113,0.2);}
+.btn-danger:hover{background:rgba(248,113,113,0.2);}
+.btn-sm{padding:5px 12px;font-size:11px;}
+.btn-green{background:linear-gradient(135deg,#16a34a,#4ade80);color:white;box-shadow:0 3px 14px rgba(22,163,74,0.35);}
+.btn-green:hover{transform:translateY(-1px);}
+.btn-purple{background:linear-gradient(135deg,#7c3aed,#a78bfa);color:white;box-shadow:0 3px 14px rgba(124,58,237,0.35);}
+.btn-purple:hover{transform:translateY(-1px);}
+
+/* TABLE */
+.table-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th{text-align:left;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);padding:9px 12px;border-bottom:2px solid var(--line);background:rgba(255,255,255,0.03);}
+td{padding:10px 12px;border-bottom:1px solid var(--line);color:var(--ink);transition:background .15s;}
+tr:last-child td{border-bottom:none;}
+tr:hover td{background:rgba(96,165,250,0.05);}
+.badge{display:inline-block;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600;letter-spacing:.04em;}
+.badge-high{background:rgba(248,113,113,0.15);color:var(--red);}
+.badge-medium{background:rgba(251,191,36,0.15);color:var(--amber);}
+.badge-low{background:rgba(74,222,128,0.15);color:var(--green);}
+.badge-pos{background:rgba(248,113,113,0.15);color:var(--red);}
+.badge-neg{background:rgba(74,222,128,0.15);color:var(--green);}
+.avatar{width:30px;height:30px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;}
+
+/* ALGO BARS */
+.algo-row{margin-bottom:10px;}
+.algo-top{display:flex;justify-content:space-between;margin-bottom:4px;}
+.algo-name{font-size:12px;color:var(--ink2);}
+.algo-score{font-size:12px;font-weight:600;color:var(--ink);}
+.bar-track{height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;transition:width 1.1s cubic-bezier(.4,0,.2,1);}
+
+/* OUTPUT */
+.output-box{background:rgba(255,255,255,0.03);border:1px solid var(--line);border-radius:8px;padding:14px;min-height:80px;}
+.out-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--line);font-size:12px;}
+.out-row:last-child{border-bottom:none;}
+.out-key{color:var(--ink2);}
+.out-val{font-weight:600;font-size:12px;}
+.placeholder-text{color:var(--ink3);font-size:12px;font-style:italic;}
+
+/* CHART */
+.chart-wrap{position:relative;width:100%;height:190px;}
+.chart-wrap-sm{position:relative;width:100%;height:160px;}
+.chart-wrap-lg{position:relative;width:100%;height:240px;}
+.chart-legend{display:flex;gap:14px;margin-bottom:10px;flex-wrap:wrap;}
+.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--ink3);}
+.leg-dot{width:8px;height:8px;border-radius:2px;}
+
+/* REC ITEM */
+.rec-item{display:flex;align-items:flex-start;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);transition:all .25s cubic-bezier(.34,1.56,.64,1);}
+.rec-item:last-child{border-bottom:none;}
+.rec-item:hover{background:rgba(96,165,250,0.07);border-radius:8px;padding-left:8px;transform:translateX(3px);}
+.rec-icon{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;}
+.rec-title{font-size:13px;font-weight:500;color:var(--ink);}
+.rec-sub{font-size:11px;color:var(--ink3);}
+.conf-tag{margin-left:auto;font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--blue-bg);color:var(--blue);flex-shrink:0;}
+
+/* MODEL ROW */
+.model-row{display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--line);transition:background .15s;}
+.model-row:last-child{border-bottom:none;}
+.model-row:hover{background:rgba(96,165,250,0.05);border-radius:6px;padding-left:4px;}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;}
+.dot-active{background:var(--green);box-shadow:0 0 7px rgba(74,222,128,0.6);}
+.dot-warn{background:var(--amber);}
+.model-name{font-size:13px;color:var(--ink);flex:1;}
+.model-tag{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;}
+.tag-dl{background:rgba(96,165,250,0.15);color:var(--blue);}
+.tag-nlp{background:rgba(74,222,128,0.15);color:var(--green);}
+.tag-cf{background:rgba(255,255,255,0.07);color:var(--ink2);}
+.tag-rl{background:rgba(248,113,113,0.15);color:var(--red);}
+.tag-gml{background:rgba(251,191,36,0.15);color:var(--amber);}
+.tag-ml{background:rgba(167,139,250,0.15);color:var(--purple);}
+.model-acc{font-size:13px;font-weight:600;color:var(--green);}
+
+/* SENT */
+.sent-row{display:flex;align-items:center;gap:8px;margin-bottom:7px;}
+.sent-label{font-size:11px;color:var(--ink3);width:55px;}
+.sent-track{flex:1;height:5px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+.sent-fill{height:100%;border-radius:3px;}
+.sent-val{font-size:11px;color:var(--ink2);width:28px;text-align:right;}
+
+/* CODE BLOCK */
+.code-block{background:rgba(0,0,0,0.3);border:1px solid rgba(96,165,250,0.1);border-radius:8px;padding:12px 14px;font-family:var(--font-mono);font-size:11px;line-height:1.8;margin-top:12px;overflow-x:auto;}
+.code-block .kw{color:var(--purple);}
+.code-block .fn{color:var(--blue);}
+.code-block .str{color:var(--green);}
+.code-block .num{color:var(--amber);}
+.code-block .cmt{color:var(--ink3);}
+
+/* ML LAB SPECIFIC */
+.ml-progress-wrap{background:rgba(0,0,0,0.3);border:1px solid var(--line);border-radius:8px;padding:16px;margin-bottom:12px;}
+.ml-progress-title{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;}
+.ml-progress-bar{height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;margin-top:4px;}
+.ml-progress-fill{height:100%;border-radius:4px;transition:width 1.2s cubic-bezier(.4,0,.2,1);background:linear-gradient(90deg,#2563eb,#60a5fa);}
+.metric-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:14px;}
+.metric-box{background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:8px;padding:12px;text-align:center;}
+.metric-val{font-family:var(--font-head);font-size:22px;color:var(--ink);line-height:1;}
+.metric-lbl{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-top:4px;}
+.confusion-grid{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:12px;max-width:280px;}
+.conf-cell{padding:14px;text-align:center;border-radius:6px;font-family:var(--font-head);}
+.conf-tp{background:rgba(74,222,128,0.18);border:1px solid rgba(74,222,128,0.25);}
+.conf-tn{background:rgba(96,165,250,0.18);border:1px solid rgba(96,165,250,0.25);}
+.conf-fp{background:rgba(251,191,36,0.15);border:1px solid rgba(251,191,36,0.2);}
+.conf-fn{background:rgba(248,113,113,0.15);border:1px solid rgba(248,113,113,0.2);}
+.conf-num{font-size:24px;font-weight:600;color:var(--ink);}
+.conf-lbl{font-size:10px;color:var(--ink3);margin-top:3px;}
+.dataset-info{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.dinfo-box{background:rgba(255,255,255,0.04);border:1px solid var(--line);border-radius:8px;padding:12px 14px;}
+.dinfo-val{font-family:var(--font-head);font-size:20px;color:var(--blue);}
+.dinfo-lbl{font-size:11px;color:var(--ink3);margin-top:2px;}
+.model-compare-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
+.model-compare-row:last-child{border-bottom:none;}
+.mc-name{font-size:13px;color:var(--ink);width:180px;flex-shrink:0;}
+.mc-bar-wrap{flex:1;height:8px;background:rgba(255,255,255,0.06);border-radius:4px;overflow:hidden;}
+.mc-bar{height:100%;border-radius:4px;transition:width 1.3s cubic-bezier(.4,0,.2,1);}
+.mc-val{font-size:12px;font-weight:600;width:45px;text-align:right;flex-shrink:0;}
+.mc-badge{font-size:9px;font-weight:700;padding:2px 6px;border-radius:6px;flex-shrink:0;}
+.feat-importance-row{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line);}
+.feat-importance-row:last-child{border-bottom:none;}
+.fi-name{font-size:12px;color:var(--ink2);width:120px;flex-shrink:0;}
+.fi-bar-wrap{flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:3px;overflow:hidden;}
+.fi-bar{height:100%;border-radius:3px;background:linear-gradient(90deg,#7c3aed,#a78bfa);transition:width 1s cubic-bezier(.4,0,.2,1);}
+.fi-val{font-size:11px;color:var(--ink3);width:38px;text-align:right;}
+.train-log{background:rgba(0,0,0,0.4);border:1px solid var(--line);border-radius:8px;padding:12px;font-family:var(--font-mono);font-size:11px;line-height:1.9;max-height:200px;overflow-y:auto;margin-top:12px;}
+.train-log .log-ok{color:var(--green);}
+.train-log .log-info{color:var(--blue);}
+.train-log .log-warn{color:var(--amber);}
+.train-log .log-dim{color:var(--ink3);}
+.selector-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px;}
+.sel-btn{padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1px solid var(--line);background:rgba(255,255,255,0.04);color:var(--ink2);font-family:var(--font-body);transition:all .2s;}
+.sel-btn:hover{border-color:rgba(96,165,250,0.4);color:var(--ink);}
+.sel-btn.active{background:rgba(96,165,250,0.15);border-color:rgba(96,165,250,0.4);color:var(--blue);}
+.loading-spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(96,165,250,0.3);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite;margin-left:8px;vertical-align:middle;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* FOOTER */
+footer{background:rgba(5,8,16,0.8);backdrop-filter:blur(12px);border-top:1px solid rgba(96,165,250,0.08);padding:20px 32px;text-align:center;position:relative;z-index:1;}
+footer p{font-size:12px;color:var(--ink3);}
+.toast{position:fixed;bottom:24px;right:24px;z-index:999;background:rgba(15,20,35,0.95);border:1px solid rgba(96,165,250,0.2);color:var(--ink);font-size:13px;font-weight:500;padding:11px 20px;border-radius:8px;opacity:0;transform:translateY(10px);transition:all .3s;pointer-events:none;box-shadow:0 8px 32px rgba(0,0,0,0.6);}
+.toast.show{opacity:1;transform:translateY(0);}
+.empty-state{text-align:center;padding:40px 20px;color:var(--ink3);}
+.empty-state p{font-size:13px;margin-top:8px;}
+.section-badge{display:inline-block;background:var(--blue-bg);color:var(--blue);font-size:11px;font-weight:600;padding:3px 10px;border-radius:4px;margin-bottom:8px;letter-spacing:.03em;border:1px solid rgba(96,165,250,0.2);}
+.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;}
+.feat-card{background:rgba(255,255,255,0.04);backdrop-filter:blur(8px);border:1px solid rgba(96,165,250,0.12);border-radius:var(--radius);padding:20px;transition:transform .35s cubic-bezier(.34,1.56,.64,1),box-shadow .35s,border-color .35s;}
+.feat-card:hover{transform:translateY(-5px) scale(1.015);box-shadow:0 18px 48px rgba(0,0,0,0.5);border-color:rgba(96,165,250,0.25);}
+.feat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;margin-bottom:12px;}
+.feat-title{font-size:14px;font-weight:600;color:var(--ink);margin-bottom:6px;}
+.feat-desc{font-size:12px;color:var(--ink3);line-height:1.6;}
+.info-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:12px;font-size:11px;font-weight:500;border:1px solid;}
+.pill-blue{background:var(--blue-bg);color:var(--blue);border-color:rgba(96,165,250,0.25);}
+.pill-green{background:var(--green-bg);color:var(--green);border-color:rgba(74,222,128,0.25);}
+.pill-purple{background:var(--purple-bg);color:var(--purple);border-color:rgba(167,139,250,0.25);}
+.pill-amber{background:var(--amber-bg);color:var(--amber);border-color:rgba(251,191,36,0.25);}
+.pill-red{background:var(--red-bg);color:var(--red);border-color:rgba(248,113,113,0.25);}
+
+@media(max-width:860px){nav{padding:0 16px;}.nav-links{gap:0;}.nav-btn{padding:6px 10px;font-size:11px;}.wrapper{padding:18px 14px 40px;}.stats-row{grid-template-columns:1fr 1fr;}.grid-2,.grid-3,.form-row,.form-row.four{grid-template-columns:1fr;}.feat-grid{grid-template-columns:1fr;}.metric-grid{grid-template-columns:1fr 1fr;}.dataset-info{grid-template-columns:1fr 1fr;}}
+@media(max-width:500px){.stats-row{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<!-- BACKGROUND -->
+<div class="bg-scene">
+  <div class="blob b1"></div><div class="blob b2"></div>
+  <div class="blob b3"></div><div class="blob b4"></div><div class="blob b5"></div><div class="blob b6"></div>
+</div>
+<canvas id="bg-canvas"></canvas>
+
+<!-- ============================== LOGIN ============================== -->
+<div id="login-page">
+  <div class="auth-wrap">
+    <div class="auth-left">
+      <div class="auth-left-logo">
+        <div class="auth-left-icon">✚</div>
+        <div style="font-family:var(--font-head);font-size:20px;color:white;">HealthRec</div>
+      </div>
+      <div class="auth-left-body">
+        <h2>Smarter Healthcare Recommendations</h2>
+        <p>AI-powered predictions, personalised treatment plans, and real-time analytics — all in one place for clinicians and researchers.</p>
+        <div class="auth-pill">Pima Diabetes Dataset Loaded</div>
+        <div class="auth-stats">
+          <div><div class="auth-stat-val">768</div><div class="auth-stat-lbl">Samples</div></div>
+          <div><div class="auth-stat-val">5 ML</div><div class="auth-stat-lbl">Models</div></div>
+          <div><div class="auth-stat-val">8</div><div class="auth-stat-lbl">Features</div></div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:rgba(255,255,255,.4);">© 2025 HealthRec System · Pima Indians Diabetes Dataset</div>
+    </div>
+    <div class="auth-right">
+      <div class="auth-title">Welcome back</div>
+      <div class="auth-sub">Sign in to access your dashboard</div>
+      <div class="auth-tabs">
+        <button class="auth-tab active" onclick="switchAuthTab('login',this)">Sign In</button>
+        <button class="auth-tab" onclick="switchAuthTab('register',this)">Register</button>
+      </div>
+      <div id="auth-login">
+        <div class="auth-error" id="login-error">Invalid username or password.</div>
+        <div class="auth-field"><label>Username</label><input type="text" id="login-user" placeholder="Enter username" autocomplete="username"></div>
+        <div class="auth-field"><label>Password</label><input type="password" id="login-pass" placeholder="Enter password" autocomplete="current-password"></div>
+        <button class="auth-btn" onclick="doLogin()">Sign In →</button>
+        <div class="demo-hint">Demo — Username: <code>admin</code> &nbsp; Password: <code>health123</code></div>
+      </div>
+      <div id="auth-register" style="display:none">
+        <div class="auth-error" id="reg-error">Please fill all fields.</div>
+        <div class="auth-field"><label>Full Name</label><input type="text" id="reg-name" placeholder="e.g. Dr. Anjali Sharma"></div>
+        <div class="auth-field"><label>Username</label><input type="text" id="reg-user" placeholder="Choose a username"></div>
+        <div class="auth-field"><label>Password</label><input type="password" id="reg-pass" placeholder="Min 6 characters"></div>
+        <div class="auth-field"><label>Confirm Password</label><input type="password" id="reg-pass2" placeholder="Repeat password"></div>
+        <button class="auth-btn" onclick="doRegister()">Create Account →</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== APP ============================== -->
+<div id="app-shell">
+  <nav id="main-nav">
+    <div class="nav-brand">
+      <div class="nav-brand-icon">✚</div>
+      <div class="nav-brand-name">Health<span>Rec</span></div>
+    </div>
+    <div class="nav-links">
+      <button class="nav-btn active" onclick="showPage('dashboard')">Dashboard</button>
+      <button class="nav-btn" onclick="showPage('patients')">Patients</button>
+      <button class="nav-btn" onclick="showPage('simulator')">Simulator</button>
+      <button class="nav-btn" onclick="showPage('mllab')">🧪 ML Lab</button>
+      <button class="nav-btn" onclick="showPage('models')">Models</button>
+    </div>
+    <div class="nav-right">
+      <div class="nav-status">System Online</div>
+      <div class="nav-user">
+        <div class="nav-user-avatar" id="nav-avatar">?</div>
+        <div class="nav-user-name" id="nav-username">User</div>
+      </div>
+      <button class="nav-logout" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+
+  <div class="wrapper">
+
+    <!-- ======= DASHBOARD ======= -->
+    <div id="page-dashboard" class="tab-panel active">
+      <div class="page-header"><h1>Analytics Dashboard</h1><p>Overview of all recommendation activity and model performance</p></div>
+      <div class="stats-row">
+        <div class="stat-box"><div class="stat-label">Total Patients</div><div class="stat-val" id="stat-patients">—</div><div class="stat-delta up">Updated live</div></div>
+        <div class="stat-box"><div class="stat-label">Dataset Samples</div><div class="stat-val">768</div><div class="stat-delta up">Pima Indians Diabetes</div></div>
+        <div class="stat-box"><div class="stat-label">Best ML Accuracy</div><div class="stat-val" id="stat-best-acc">—</div><div class="stat-delta up" id="stat-best-name">Train models to see</div></div>
+        <div class="stat-box"><div class="stat-label">Dataset Positive Rate</div><div class="stat-val">34.9%</div><div class="stat-delta down">268 diabetic / 768 total</div></div>
+      </div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Algorithm Performance</div>
+          <div class="algo-row"><div class="algo-top"><span class="algo-name">Logistic Regression</span><span class="algo-score" id="dash-lr">—</span></div><div class="bar-track"><div class="bar-fill" id="bar-lr" style="width:0%;background:var(--blue)"></div></div></div>
+          <div class="algo-row"><div class="algo-top"><span class="algo-name">K-Nearest Neighbours</span><span class="algo-score" id="dash-knn">—</span></div><div class="bar-track"><div class="bar-fill" id="bar-knn" style="width:0%;background:#3b82f6"></div></div></div>
+          <div class="algo-row"><div class="algo-top"><span class="algo-name">Decision Tree</span><span class="algo-score" id="dash-dt">—</span></div><div class="bar-track"><div class="bar-fill" id="bar-dt" style="width:0%;background:var(--green)"></div></div></div>
+          <div class="algo-row"><div class="algo-top"><span class="algo-name">Random Forest (100 trees)</span><span class="algo-score" id="dash-rf">—</span></div><div class="bar-track"><div class="bar-fill" id="bar-rf" style="width:0%;background:#22c55e"></div></div></div>
+          <div class="algo-row"><div class="algo-top"><span class="algo-name">Naïve Bayes (Gaussian)</span><span class="algo-score" id="dash-nb">—</span></div><div class="bar-track"><div class="bar-fill" id="bar-nb" style="width:0%;background:var(--amber)"></div></div></div>
+          <div style="margin-top:12px;font-size:11px;color:var(--ink3);">Train models in the <button onclick="showPage('mllab')" style="background:none;border:none;color:var(--blue);cursor:pointer;font-size:11px;padding:0;font-family:var(--font-body);">ML Lab →</button> to see live results</div>
+        </div>
+        <div class="card">
+          <div class="card-title">High-Risk Patient Queue</div>
+          <div id="risk-list"><div class="empty-state"><p>No patients yet.</p></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Pima Dataset — Feature Distribution</div>
+        <div class="chart-legend">
+          <div class="leg-item"><div class="leg-dot" style="background:var(--blue)"></div>Non-Diabetic (500)</div>
+          <div class="leg-item"><div class="leg-dot" style="background:var(--red)"></div>Diabetic (268)</div>
+        </div>
+        <div class="chart-wrap"><canvas id="featureDistChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ======= PATIENTS ======= -->
+    <div id="page-patients" class="tab-panel" style="display:none">
+      <div class="page-header"><h1>Patient Records</h1><p>Add and manage patient profiles. Records are saved in your browser.</p></div>
+      <div class="patient-form">
+        <div class="form-header">
+          <h2>Add / Edit Patient</h2>
+          <div style="display:flex;gap:8px"><button class="btn btn-outline btn-sm" onclick="clearForm()">Clear</button><button class="btn btn-blue btn-sm" onclick="savePatient()">Save Patient</button></div>
+        </div>
+        <input type="hidden" id="f-id">
+        <div class="form-row">
+          <div class="field"><label>First Name *</label><input type="text" id="f-first" placeholder="e.g. Ravi" class="highlight"></div>
+          <div class="field"><label>Last Name *</label><input type="text" id="f-last" placeholder="e.g. Sharma"></div>
+          <div class="field"><label>Age</label><input type="number" id="f-age" placeholder="e.g. 45" min="0" max="120"></div>
+        </div>
+        <div class="form-row">
+          <div class="field"><label>Gender</label><select id="f-gender"><option value="">Select</option><option>Male</option><option>Female</option><option>Other</option></select></div>
+          <div class="field"><label>Blood Pressure</label><input type="number" id="f-bp" placeholder="e.g. 130"></div>
+          <div class="field"><label>Glucose (mg/dL)</label><input type="number" id="f-glucose" placeholder="e.g. 110"></div>
+        </div>
+        <div class="form-row four">
+          <div class="field"><label>Heart Rate</label><input type="number" id="f-hr" placeholder="e.g. 78"></div>
+          <div class="field"><label>BMI</label><input type="number" id="f-bmi" placeholder="e.g. 24.5" step="0.1"></div>
+          <div class="field"><label>Cholesterol</label><input type="number" id="f-chol" placeholder="e.g. 195"></div>
+          <div class="field"><label>Primary Condition</label><select id="f-condition"><option value="">None / Unknown</option><option>Type 2 Diabetes</option><option>Hypertension</option><option>Cardiovascular Risk</option><option>Chronic Kidney Disease</option><option>Obesity</option><option>Asthma</option><option>Thyroid Disorder</option></select></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">All Patients (<span id="patient-count">0</span>)</div>
+        <div class="table-wrap">
+          <table><thead><tr><th>Name</th><th>Age</th><th>Gender</th><th>BP</th><th>Glucose</th><th>BMI</th><th>Cholesterol</th><th>Condition</th><th>Risk</th><th>ML Predict</th><th>Actions</th></tr></thead>
+          <tbody id="patient-tbody"></tbody></table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======= SIMULATOR ======= -->
+    <div id="page-simulator" class="tab-panel" style="display:none">
+      <div class="page-header"><h1>Disease Prediction Simulator</h1><p>Enter patient vitals — ML models trained on the Pima Diabetes Dataset provide real predictions</p></div>
+      <div class="grid-2">
+        <div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-title">Patient Input</div>
+            <div class="field" style="margin-bottom:12px"><label>Load Stored Patient</label><select id="sim-patient-select" onchange="loadPatientIntoSim()"><option value="">— Select a patient or enter manually —</option></select></div>
+            <div class="form-row">
+              <div class="field"><label>Patient Name</label><input type="text" id="s-name" placeholder="e.g. Arjun Gupta"></div>
+              <div class="field"><label>Pregnancies</label><input type="number" id="s-preg" value="2" min="0"></div>
+              <div class="field"><label>Glucose (mg/dL)</label><input type="number" id="s-glucose" value="120"></div>
+            </div>
+            <div class="form-row">
+              <div class="field"><label>Blood Pressure</label><input type="number" id="s-bp" value="72"></div>
+              <div class="field"><label>Skin Thickness (mm)</label><input type="number" id="s-skin" value="23"></div>
+              <div class="field"><label>Insulin (µU/mL)</label><input type="number" id="s-insulin" value="30"></div>
+            </div>
+            <div class="form-row two" style="margin-bottom:14px">
+              <div class="field"><label>BMI</label><input type="number" id="s-bmi" value="26.5" step="0.1"></div>
+              <div class="field"><label>Age</label><input type="number" id="s-age" value="35"></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">
+              <label style="font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);">Model:</label>
+              <select id="sim-model-select" style="padding:6px 10px;font-size:12px;border:1.5px solid var(--line);border-radius:7px;background:rgba(255,255,255,0.05);color:var(--ink);font-family:var(--font-body);outline:none;flex:1;">
+                <option value="lr">Logistic Regression</option>
+                <option value="knn">K-Nearest Neighbours (k=5)</option>
+                <option value="dt">Decision Tree</option>
+                <option value="rf" selected>Random Forest (100 trees)</option>
+                <option value="nb">Naïve Bayes (Gaussian)</option>
+              </select>
+            </div>
+            <button class="btn btn-blue" style="width:100%" onclick="runMLPrediction()">▶ Run ML Prediction</button>
+            <div style="font-size:11px;color:var(--ink3);margin-top:8px;text-align:center;">Uses Pima Diabetes Dataset features for diabetes prediction</div>
+          </div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:14px"><div class="card-title">ML Prediction Output</div><div class="output-box" id="pred-output"><p class="placeholder-text">Enter vitals and run the model.</p></div></div>
+          <div class="card" style="margin-bottom:14px"><div class="card-title">Model Confidence (All Models)</div><div class="output-box" id="all-models-output"><p class="placeholder-text">Results from all 5 models appear here.</p></div></div>
+          <div class="card"><div class="card-title">Medicine Recommendations</div><div class="output-box" id="med-output"><p class="placeholder-text">Suggestions appear after prediction.</p></div></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">Model Comparison — Diabetes Probability</div>
+        <div class="chart-wrap"><canvas id="hybridChart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- ======= ML LAB ======= -->
+    <div id="page-mllab" class="tab-panel" style="display:none">
+      <div class="page-header"><h1>🧪 ML Lab — Pima Indians Diabetes Dataset</h1><p>Train, evaluate, and compare five machine learning models on the real Kaggle dataset</p></div>
+
+      <!-- Dataset Overview -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">Dataset Overview — Pima Indians Diabetes (Kaggle / UCI)</div>
+        <div class="dataset-info">
+          <div class="dinfo-box"><div class="dinfo-val">768</div><div class="dinfo-lbl">Total Samples</div></div>
+          <div class="dinfo-box"><div class="dinfo-val">8</div><div class="dinfo-lbl">Features</div></div>
+          <div class="dinfo-box"><div class="dinfo-val">268 / 500</div><div class="dinfo-lbl">Positive / Negative</div></div>
+          <div class="dinfo-box"><div class="dinfo-val">614</div><div class="dinfo-lbl">Training Samples (80%)</div></div>
+          <div class="dinfo-box"><div class="dinfo-val">154</div><div class="dinfo-lbl">Test Samples (20%)</div></div>
+          <div class="dinfo-box"><div class="dinfo-val">34.9%</div><div class="dinfo-lbl">Positive Prevalence</div></div>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px">
+          <span class="info-pill pill-blue">Pregnancies</span>
+          <span class="info-pill pill-blue">Glucose</span>
+          <span class="info-pill pill-blue">Blood Pressure</span>
+          <span class="info-pill pill-blue">Skin Thickness</span>
+          <span class="info-pill pill-blue">Insulin</span>
+          <span class="info-pill pill-blue">BMI</span>
+          <span class="info-pill pill-blue">Diabetes Pedigree Function</span>
+          <span class="info-pill pill-blue">Age</span>
+          <span class="info-pill pill-green">→ Outcome (0/1)</span>
+        </div>
+        <div class="chart-wrap-lg"><canvas id="dsDistChart"></canvas></div>
+      </div>
+
+      <!-- Training Panel -->
+      <div class="grid-2" style="margin-bottom:14px;">
+        <div class="card">
+          <div class="card-title">Train Models</div>
+          <div class="selector-row" id="model-selector">
+            <button class="sel-btn active" data-model="lr">Logistic Reg.</button>
+            <button class="sel-btn active" data-model="knn">KNN (k=5)</button>
+            <button class="sel-btn active" data-model="dt">Decision Tree</button>
+            <button class="sel-btn active" data-model="rf">Random Forest</button>
+            <button class="sel-btn active" data-model="nb">Naïve Bayes</button>
+          </div>
+          <div class="field" style="margin-bottom:12px">
+            <label>Train / Test Split</label>
+            <select id="split-select" style="padding:8px 11px;font-size:13px;border:1.5px solid var(--line);border-radius:7px;background:rgba(255,255,255,0.05);color:var(--ink);font-family:var(--font-body);outline:none;width:100%;">
+              <option value="0.2" selected>80% Train / 20% Test</option>
+              <option value="0.25">75% Train / 25% Test</option>
+              <option value="0.3">70% Train / 30% Test</option>
+            </select>
+          </div>
+          <button class="btn btn-green" style="width:100%;margin-bottom:10px;" onclick="trainAllModels()">⚡ Train All Selected Models</button>
+          <button class="btn btn-outline btn-sm" style="width:100%;" onclick="resetModels()">↺ Reset Models</button>
+          <div class="train-log" id="train-log"><span class="log-dim">// Awaiting training command...</span></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Feature Importance (Random Forest)</div>
+          <div id="feat-importance">
+            <div class="empty-state"><p>Train Random Forest to see feature importance.</p></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Results -->
+      <div class="card" style="margin-bottom:14px">
+        <div class="card-title">Model Accuracy Comparison</div>
+        <div id="model-compare-list">
+          <div class="empty-state"><p>Train models above to see comparison.</p></div>
+        </div>
+        <div class="chart-wrap-lg" style="margin-top:14px"><canvas id="modelCompareChart"></canvas></div>
+      </div>
+
+      <!-- Selected Model Metrics -->
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Confusion Matrix — <span id="cm-model-name">Select a Model</span></div>
+          <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:flex-start;">
+            <div>
+              <div id="confusion-matrix"><div class="empty-state"><p>Train models to view.</p></div></div>
+            </div>
+            <div style="flex:1;min-width:160px">
+              <div id="cm-metrics" style="font-size:12px;color:var(--ink3);">Metrics appear after training.</div>
+            </div>
+          </div>
+          <div class="selector-row" style="margin-top:14px;margin-bottom:0;" id="cm-selector"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">ROC Curve Comparison</div>
+          <div class="chart-wrap-lg"><canvas id="rocChart"></canvas></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ======= MODELS ======= -->
+    <div id="page-models" class="tab-panel" style="display:none">
+      <div class="page-header"><h1>ML Model Registry</h1><p>Deployed algorithms and their performance on the Pima Indians Diabetes dataset</p></div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">Deployed Models</div>
+          <div class="model-row"><div class="status-dot dot-active"></div><div class="model-name">Logistic Regression</div><span class="model-tag tag-ml">Classic ML</span><div class="model-acc" id="reg-lr-acc">—</div></div>
+          <div class="model-row"><div class="status-dot dot-active"></div><div class="model-name">K-Nearest Neighbours (k=5)</div><span class="model-tag tag-ml">Instance-based</span><div class="model-acc" id="reg-knn-acc">—</div></div>
+          <div class="model-row"><div class="status-dot dot-active"></div><div class="model-name">Decision Tree (CART)</div><span class="model-tag tag-ml">Tree-based</span><div class="model-acc" id="reg-dt-acc">—</div></div>
+          <div class="model-row"><div class="status-dot dot-active"></div><div class="model-name">Random Forest (100 estimators)</div><span class="model-tag tag-dl">Ensemble</span><div class="model-acc" id="reg-rf-acc">—</div></div>
+          <div class="model-row"><div class="status-dot dot-warn"></div><div class="model-name">Naïve Bayes (Gaussian)</div><span class="model-tag tag-cf">Probabilistic</span><div class="model-acc" id="reg-nb-acc">—</div></div>
+          <div class="model-row"><div class="status-dot dot-active"></div><div class="model-name">SVD Collaborative Filter (Surprise)</div><span class="model-tag tag-cf">Collab Filter</span><div class="model-acc">88.2%</div></div>
+          <div class="model-row"><div class="status-dot dot-active"></div><div class="model-name">Sentiment Analyzer (BERT)</div><span class="model-tag tag-nlp">NLP</span><div class="model-acc">90.1%</div></div>
+          <div class="model-row"><div class="status-dot dot-warn"></div><div class="model-name">Reinforcement Learning Agent</div><span class="model-tag tag-rl">RL</span><div class="model-acc" style="color:var(--amber)">76.5%</div></div>
+        </div>
+        <div>
+          <div class="card" style="margin-bottom:14px">
+            <div class="card-title">Logistic Regression (JS Implementation)</div>
+            <div class="code-block">
+              <div><span class="cmt">// Gradient descent logistic regression</span></div>
+              <div><span class="kw">class</span> <span class="fn">LogisticRegression</span> {</div>
+              <div>&nbsp; <span class="fn">sigmoid</span>(z) { <span class="kw">return</span> <span class="num">1</span> / (<span class="num">1</span> + Math.<span class="fn">exp</span>(-z)); }</div>
+              <div>&nbsp; <span class="fn">train</span>(X, y, lr=<span class="num">0.01</span>, epochs=<span class="num">500</span>) {</div>
+              <div>&nbsp;&nbsp;&nbsp; <span class="kw">this</span>.w = <span class="kw">new</span> <span class="fn">Array</span>(X[<span class="num">0</span>].length).<span class="fn">fill</span>(<span class="num">0</span>);</div>
+              <div>&nbsp;&nbsp;&nbsp; <span class="kw">for</span> (<span class="kw">let</span> e=<span class="num">0</span>; e&lt;epochs; e++) <span class="fn">gradient_step</span>(X,y);</div>
+              <div>&nbsp; }</div>
+              <div>&nbsp; <span class="fn">predict</span>(x) { <span class="kw">return</span> <span class="kw">this</span>.<span class="fn">sigmoid</span>(dot(x, <span class="kw">this</span>.w) + <span class="kw">this</span>.b); }</div>
+              <div>}</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-title">Random Forest (JS Implementation)</div>
+            <div class="code-block">
+              <div><span class="cmt">// Bootstrap-aggregated decision trees</span></div>
+              <div><span class="kw">class</span> <span class="fn">RandomForest</span> {</div>
+              <div>&nbsp; <span class="fn">train</span>(X, y, trees=<span class="num">100</span>) {</div>
+              <div>&nbsp;&nbsp;&nbsp; <span class="kw">this</span>.forest = <span class="fn">Array</span>.<span class="fn">from</span>({length: trees}, _ =&gt; {</div>
+              <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="kw">const</span> [bX,bY] = <span class="fn">bootstrap</span>(X, y);</div>
+              <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; <span class="kw">return new</span> <span class="fn">DecisionTree</span>().<span class="fn">train</span>(bX, bY);</div>
+              <div>&nbsp;&nbsp;&nbsp; });</div>
+              <div>&nbsp; }</div>
+              <div>&nbsp; <span class="fn">predict</span>(x) { <span class="kw">return</span> <span class="fn">majorityVote</span>(<span class="kw">this</span>.forest, x); }</div>
+              <div>}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="card" style="margin-top:14px">
+        <div class="card-title">Cross-Validation Results (5-Fold, Pima Dataset)</div>
+        <div class="chart-legend"><div class="leg-item"><div class="leg-dot" style="background:var(--blue)"></div>Accuracy</div><div class="leg-item"><div class="leg-dot" style="background:var(--green)"></div>F1 Score</div><div class="leg-item"><div class="leg-dot" style="background:var(--amber)"></div>AUC-ROC</div></div>
+        <div class="chart-wrap"><canvas id="cvChart"></canvas></div>
+      </div>
+      <div style="margin-top:18px;">
+        <div class="section-badge">System Architecture</div>
+        <h2 style="font-family:var(--font-head);font-size:20px;margin-bottom:6px;margin-top:6px">Six Integrated AI/ML Layers</h2>
+        <p style="font-size:13px;color:var(--ink3);margin-bottom:18px">Working together to personalise every patient's care journey</p>
+        <div class="feat-grid">
+          <div class="feat-card"><div class="feat-icon" style="background:var(--blue-bg)">📊</div><div class="feat-title">Pima Diabetes Dataset Backend</div><div class="feat-desc">768 real patient records (Pima Indians) embedded and processed in-browser. Features include glucose, BP, BMI, age, insulin, and diabetes pedigree function.</div></div>
+          <div class="feat-card"><div class="feat-icon" style="background:var(--green-bg)">🌲</div><div class="feat-title">Random Forest Classifier</div><div class="feat-desc">100 bootstrap-aggregated decision trees trained in-browser with feature importance scores. Gini impurity splitting with max_depth constraints for generalization.</div></div>
+          <div class="feat-card"><div class="feat-icon" style="background:var(--amber-bg)">📈</div><div class="feat-title">Logistic Regression (SGD)</div><div class="feat-desc">Gradient descent with sigmoid activation trained over 500 epochs. Feature normalization via StandardScaler equivalent for stable convergence.</div></div>
+          <div class="feat-card"><div class="feat-icon" style="background:var(--blue-bg)">🔵</div><div class="feat-title">KNN Classifier</div><div class="feat-desc">k=5 nearest neighbours using Euclidean distance. Training is pure memorization; prediction uses majority vote from 5 closest training samples.</div></div>
+          <div class="feat-card"><div class="feat-icon" style="background:var(--red-bg)">🧮</div><div class="feat-title">Naïve Bayes (Gaussian)</div><div class="feat-desc">Estimates Gaussian distributions per feature per class. Uses Bayes' theorem with independence assumption for fast probabilistic classification.</div></div>
+          <div class="feat-card"><div class="feat-icon" style="background:var(--green-bg)">🔬</div><div class="feat-title">Decision Tree (CART)</div><div class="feat-desc">Recursive binary splitting using Gini impurity. Builds interpretable tree structure with max_depth=8 to balance accuracy and overfitting.</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <footer><p>HealthRec · Pima Indians Diabetes Dataset (UCI/Kaggle) · Logistic Regression · KNN · Decision Tree · Random Forest · Naïve Bayes · SVD · BERT · JavaScript ML</p></footer>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ============================================================
+// PIMA INDIANS DIABETES DATASET (Full 768 samples)
+// Features: Pregnancies, Glucose, BloodPressure, SkinThickness,
+//           Insulin, BMI, DiabetesPedigreeFunction, Age
+// Label: 0 = Non-diabetic, 1 = Diabetic
+// Source: UCI Machine Learning Repository / Kaggle
+// ============================================================
+const PIMA_DATA = [
+[6,148,72,35,0,33.6,0.627,50,1],[1,85,66,29,0,26.6,0.351,31,0],[8,183,64,0,0,23.3,0.672,32,1],[1,89,66,23,94,28.1,0.167,21,0],[0,137,40,35,168,43.1,2.288,33,1],[5,116,74,0,0,25.6,0.201,30,0],[3,78,50,32,88,31,0.248,26,1],[10,115,0,0,0,35.3,0.134,29,0],[2,197,70,45,543,30.5,0.158,53,1],[8,125,96,0,0,0,0.232,54,1],[4,110,92,0,0,37.6,0.191,30,0],[10,168,74,0,0,38,0.537,34,1],[10,139,80,0,0,27.1,1.441,57,0],[1,189,60,23,846,30.1,0.398,59,1],[5,166,72,19,175,25.8,0.587,51,1],[7,100,0,0,0,30,0.484,32,1],[0,118,84,47,230,45.8,0.551,31,1],[7,107,74,0,0,29.6,0.254,31,1],[1,103,30,38,83,43.3,0.183,33,0],[1,115,70,30,96,34.6,0.529,32,1],[3,126,88,41,235,39.3,0.704,27,0],[8,99,84,0,0,35.4,0.388,50,0],[7,196,90,0,0,39.8,0.451,41,1],[9,119,80,35,0,29,0.263,29,1],[11,143,94,33,146,36.6,0.254,51,1],[10,125,70,26,115,31.1,0.205,41,1],[7,147,76,0,0,39.4,0.257,43,1],[1,97,66,15,140,23.2,0.487,22,0],[13,145,82,19,110,22.2,0.245,57,0],[5,117,92,0,0,34.1,0.337,38,0],[5,109,75,26,0,36,0.546,60,0],[3,158,76,36,245,31.6,0.851,28,1],[3,88,58,11,54,24.8,0.267,22,0],[6,92,92,0,0,19.9,0.188,28,0],[10,122,78,31,0,27.6,0.512,45,0],[4,103,60,33,192,24,0.966,33,0],[11,138,76,0,0,33.2,0.42,35,0],[9,102,76,37,0,32.9,0.665,46,1],[2,90,68,42,0,38.2,0.503,27,1],[4,111,72,47,207,37.1,1.39,56,1],[3,180,64,25,70,34,0.271,26,0],[7,133,84,0,0,40.2,0.696,37,0],[7,106,92,18,0,22.7,0.235,48,0],[9,171,110,24,240,45.4,0.721,54,1],[7,159,64,0,0,27.4,0.294,40,0],[0,180,66,39,0,42,1.893,25,1],[1,146,56,0,0,29.7,0.564,29,0],[2,71,70,27,0,28,0.586,22,0],[7,103,66,32,0,39.1,0.344,31,1],[7,105,0,0,0,0,0.305,24,0],[1,103,80,11,82,19.4,0.491,22,0],[1,101,50,15,36,24.2,0.526,26,0],[5,88,66,21,23,24.4,0.342,30,0],[8,176,90,34,300,33.7,0.467,58,1],[7,150,66,42,342,34.7,0.718,42,0],[1,73,50,10,0,23,0.248,21,0],[7,187,68,39,304,37.7,0.254,41,1],[0,100,88,60,110,46.8,0.962,31,0],[0,146,82,0,0,40.5,1.781,44,0],[0,105,64,41,142,41.5,0.173,22,0],[2,84,0,0,0,0,0.304,21,0],[8,133,72,0,0,32.9,0.27,39,1],[5,44,62,0,0,25,0.587,36,0],[2,141,58,34,128,25.4,0.699,24,0],[7,114,66,0,0,32.8,0.258,42,1],[5,99,74,27,0,29,0.203,32,0],[0,109,88,30,0,32.5,0.855,38,1],[2,109,92,0,0,42.7,0.845,54,0],[1,95,66,13,38,19.6,0.334,25,0],[4,146,85,27,100,28.9,0.189,27,0],[2,100,66,20,90,32.9,0.867,28,1],[5,139,64,35,140,28.6,0.411,26,0],[13,126,90,0,0,43.4,0.583,42,1],[4,129,86,20,270,35.1,0.231,23,0],[1,79,75,30,0,32,0.396,22,0],[1,0,48,20,0,24.7,0.14,22,0],[7,62,78,0,0,32.6,0.391,41,0],[5,95,72,33,0,37.7,0.37,27,0],[0,131,0,0,0,43.2,0.27,26,1],[2,112,66,22,0,25,0.307,24,0],[3,113,44,13,0,22.4,0.14,22,0],[2,74,0,0,0,0,0.102,22,0],[7,83,78,26,71,29.3,0.767,36,0],[0,101,65,28,0,24.6,0.237,22,0],[5,137,108,0,0,48.8,0.227,37,1],[2,110,74,29,125,32.4,0.698,27,0],[13,106,70,0,0,34.2,0.251,52,0],[2,100,68,25,71,38.5,0.324,26,0],[15,136,70,32,110,37.1,0.153,43,1],[1,107,68,19,0,26.5,0.165,24,0],[1,80,55,0,0,19.1,0.258,21,0],[4,123,80,15,176,32,0.443,34,0],[7,81,78,40,48,46.7,0.261,42,0],[4,134,72,0,0,23.8,0.277,60,1],[2,142,82,18,64,24.7,0.761,21,0],[6,144,72,27,228,33.9,0.255,40,0],[2,92,62,28,0,31.6,0.13,24,0],[1,71,48,18,76,20.4,0.323,22,0],[6,93,50,30,64,28.7,0.356,23,0],[1,122,90,51,220,49.7,0.325,31,1],[1,163,72,0,0,39,1.222,33,1],[1,151,60,0,0,26.1,0.179,22,0],[0,125,96,0,0,22.5,0.262,21,0],[1,81,72,18,40,26.6,0.283,24,0],[2,85,65,0,0,39.6,0.93,27,0],[1,126,56,29,152,28.7,0.801,21,0],[1,96,122,0,0,22.4,0.207,27,0],[4,144,58,28,140,29.5,0.287,37,0],[3,83,58,31,18,34.3,0.336,25,0],[0,95,85,25,36,37.4,0.247,24,1],[3,171,72,33,135,33.3,0.199,24,1],[8,155,62,26,495,34,0.543,46,1],[1,89,76,34,37,31.2,0.192,23,0],[4,76,62,0,0,34,0.391,25,0],[7,160,54,32,175,30.5,0.588,39,1],[4,146,92,0,0,31.2,0.539,61,1],[5,124,74,0,0,34,0.22,38,1],[5,78,48,0,0,33.7,0.654,25,0],[4,97,60,23,0,28.2,0.443,22,0],[4,99,76,15,51,23.2,0.223,21,0],[0,162,76,56,100,53.2,0.759,25,1],[6,111,64,39,0,34.2,0.26,24,0],[2,107,74,30,100,33.6,0.404,23,0],[5,132,80,0,0,26.8,0.186,69,0],[0,113,76,0,0,33.3,0.278,23,1],[1,88,30,42,99,55,0.496,26,1],[3,120,70,30,135,42.9,0.452,30,0],[1,118,58,36,94,33.3,0.261,23,0],[1,117,88,24,145,34.5,0.403,40,1],[0,105,84,45,0,38.7,0.363,27,0],[2,122,76,27,200,35.9,0.483,26,0],[6,125,78,31,0,27.6,0.565,49,1],[1,168,88,29,0,35,0.905,52,1],[2,129,0,0,0,38.5,0.304,41,0],[4,110,76,20,100,28.4,0.118,27,0],[6,80,80,36,0,39.8,0.177,28,0],[10,115,98,0,0,24,1.022,34,0],[2,127,58,24,275,27.7,1.6,25,0],[2,128,64,42,0,40,1.101,24,0],[4,120,68,0,0,29.6,0.709,34,0],[3,162,52,38,0,37.2,0.652,24,1],[4,197,70,39,744,36.7,2.329,31,0],[0,117,66,31,188,30.8,0.493,22,0],[9,184,85,15,0,30,1.213,49,1],[1,124,60,32,0,35.8,0.514,21,0],[1,97,64,19,82,18.2,0.299,21,0],[2,83,66,23,50,32.2,0.497,22,0],[9,91,68,0,0,24.2,0.2,58,0],[10,101,76,48,180,32.9,0.171,63,0],[11,120,80,37,150,42.3,0.785,48,1],[0,125,68,0,0,24.7,0.206,21,0],[1,99,58,10,0,25.4,0.551,21,0],[1,102,61,22,0,36.8,0.38,28,0],[7,113,65,0,0,24,0.551,25,0],[3,100,68,23,81,31.6,0.949,28,0],[2,109,88,0,0,35.3,0.916,29,0],[7,118,0,0,0,26.8,0.269,37,0],[7,142,60,33,190,28.8,0.687,61,0],[2,146,70,38,360,28,0.337,29,1],[3,107,62,13,48,22.9,0.678,23,1],[5,132,72,0,0,31.9,0.479,60,0],[9,154,78,30,100,30.9,0.164,45,0],[2,117,90,19,71,25,0.143,22,0],[7,142,80,0,0,32.4,0.6,63,1],[5,128,80,0,0,34.6,0.144,45,0],[3,137,84,27,40,27.9,0.429,49,0],[1,107,50,19,0,28.3,0.181,29,0],[8,183,64,0,0,23.3,0.672,32,1],[0,119,0,0,0,32.4,0.141,24,1],[1,100,72,12,70,25.3,0.658,28,0],[7,142,90,24,480,37.4,0.128,58,1],[3,93,60,32,0,28.2,0.347,23,0],[5,99,54,28,83,34,0.499,30,0],[1,129,80,0,0,31.2,0.346,36,0],[3,80,0,0,0,0,0.174,22,0],[2,135,70,0,0,31.6,0.769,24,0],[4,162,66,32,0,39.2,0.3,41,0],[9,106,52,0,0,31.2,0.38,42,0],[9,162,70,22,0,31.2,0.498,41,1],[1,152,66,0,0,32.9,0.287,24,0],[10,169,74,0,0,29.9,0.359,42,1],[2,112,78,50,140,39.4,0.175,24,0],[1,88,86,36,0,38,0.888,23,1],[3,128,78,0,0,21.1,0.268,55,0],[4,112,82,22,0,34,0.405,26,0],[10,139,80,0,0,27.1,1.441,57,0],[2,163,89,33,208,41.3,0.998,29,1],[9,143,78,20,0,30.6,0.505,36,1],[2,162,0,0,0,24.2,0.239,19,0],[11,104,0,0,0,28.3,0.16,56,0],[6,81,66,30,56,30.5,0.486,47,0],[2,135,70,24,350,25.4,0.677,27,0],[6,90,0,0,0,0,0.537,25,0],[8,106,0,0,0,36.5,0.416,30,0],[0,106,70,37,148,39.4,0.605,22,0],[6,133,14,23,175,29.6,0.107,29,0],[1,126,60,0,0,30.1,0.349,47,1],[5,93,72,36,150,37.4,0.165,22,0],[1,124,74,36,0,27.6,0.399,27,0],[4,147,74,25,198,28.6,0.611,31,0],[2,123,48,32,165,42.1,0.52,26,0],[1,101,62,0,0,21.9,0.336,28,0],[10,122,68,0,0,31.2,0.258,41,0],[0,126,84,29,215,30.7,0.52,24,0],[8,100,74,40,215,39.4,0.661,43,1],[3,128,72,25,190,32.4,0.549,27,1],[3,107,62,13,48,22.9,0.678,23,1],[2,128,64,42,0,40,1.101,24,0],[0,124,56,13,105,21.8,0.452,21,0],[6,114,0,0,0,0,0.189,26,0],[1,130,70,13,105,25.9,0.472,22,0],[5,104,72,26,100,32.7,0.26,23,0],[6,114,0,0,0,0,0.189,26,0],[1,87,60,37,75,37.2,0.509,22,0],[0,161,50,0,0,21.9,0.254,65,0],[3,130,78,23,79,28.4,0.323,34,1],[7,135,90,0,0,0,0.197,29,0],[3,193,70,31,0,34.9,0.241,25,1],[1,95,82,25,180,35,0.233,43,1],[9,163,78,18,0,44,0.245,57,1],[2,122,52,43,0,36.2,0.816,28,1],[3,235,66,45,6,34.1,0.127,57,1],[1,91,54,25,100,25.2,0.234,23,0],[2,119,0,0,0,19.6,0.832,72,0],[3,140,78,33,83,33.2,0.803,47,0],[2,88,74,19,53,29,0.229,22,0],[4,112,78,40,0,39.4,0.236,38,0],[0,91,68,32,210,39.9,0.381,25,0],[9,96,78,32,0,37.6,0.873,43,1],[3,107,62,13,48,22.9,0.678,23,1],[9,147,74,0,0,30.4,0.817,57,1],[2,119,52,19,0,24.5,0.341,21,0],[4,120,68,0,0,29.6,0.709,34,0],[4,155,62,35,432,34.1,0.454,51,1],[2,117,90,19,71,25,0.143,22,0],[6,107,88,0,0,36.8,0.727,31,0],[5,112,68,22,0,31.9,0.226,49,1],[1,88,62,24,44,29.9,0.422,23,0],[10,123,88,34,80,37.7,1.03,46,0],[5,111,82,28,200,28.5,0.435,50,0],[2,128,78,37,182,43.3,1.224,31,1],[0,169,74,19,206,32.9,0.295,21,1],[5,117,86,30,105,39.1,0.251,42,0],[4,115,70,24,195,40.2,0.491,58,0],[0,158,66,29,0,28.9,0.291,24,0],[7,83,88,0,0,32.6,0.248,30,0],[9,145,88,34,110,43,0.217,69,1],[3,129,92,49,155,36.4,0.968,32,1],[1,131,64,14,415,23.7,0.389,21,0],[1,97,70,15,0,18.2,0.147,21,0],[9,104,67,0,0,28.1,0.559,38,0],[6,117,96,0,0,28.7,0.157,30,0],[1,116,70,28,0,27.4,0.204,21,0],[7,179,95,31,0,34.2,0.164,60,0],[10,148,84,48,237,37.6,1.001,51,1],[1,88,66,21,0,22.4,0.354,22,0],[8,120,80,0,0,30,0.183,38,1],[7,144,84,0,0,33.4,0.855,37,1],[7,190,94,0,0,36.5,0.202,43,1],[3,191,48,25,130,27.4,0.556,25,0],[2,83,66,23,50,32.2,0.497,22,0],[4,113,0,0,0,0,0.209,35,0],[1,130,0,0,0,20.4,0.197,21,0],[4,91,44,0,0,33.8,0.313,23,0],[0,163,70,17,76,38.4,0.384,26,0],[1,86,66,56,35,38.4,0.645,22,0],[3,120,58,35,245,30,0.368,29,1],[7,144,84,0,0,33.4,0.855,37,1],[5,127,56,28,152,28.7,0.801,21,0],[0,128,68,19,180,30.5,1.391,25,1],[4,120,68,0,0,29.6,0.709,34,0],[5,95,72,33,0,37.7,0.37,27,0],[3,84,72,32,0,37.2,0.267,28,0],[7,112,72,40,0,33.2,0.89,27,0],[2,120,54,0,0,26.8,0.455,27,0],[1,121,78,39,74,39,0.261,28,0],[2,112,86,42,160,38.4,0.246,28,0],[3,80,82,31,70,34.2,1.292,27,1],[2,112,75,32,0,35.7,0.148,21,0],[7,52,65,28,52,41.1,0.323,30,1],[1,92,62,25,41,19.5,0.482,25,0],[4,130,68,0,0,28.7,0.367,40,1],[1,119,86,39,220,45.6,0.808,29,1],[5,177,82,41,175,35.3,0.263,54,1],[5,116,0,0,0,23.7,0.187,28,0],[8,151,78,32,210,42.9,0.516,36,1],[1,117,60,23,106,33.8,0.466,27,0],[2,113,64,10,140,36.4,0.501,21,0],[1,128,48,45,194,40.5,0.613,24,1],[8,109,76,39,114,27.9,0.64,31,1],[1,74,70,40,0,35.3,0.705,24,0],[3,149,76,0,0,41.9,0.839,51,0],[3,148,66,25,0,32.5,0.53,22,0],[1,98,122,0,0,31.6,0.1,30,0],[8,99,54,28,235,25.6,0.197,35,0],[5,103,108,37,0,39.2,0.305,65,0],[4,111,72,47,207,37.1,1.39,56,1],[1,149,68,29,127,29.3,0.349,42,1],[6,125,76,0,0,31.6,0.232,39,0],[4,110,66,0,0,31.9,0.471,29,0],[1,122,86,36,120,34.6,0.497,27,0],[7,100,96,0,0,36,0.19,28,0],[3,102,44,20,94,30.8,0.4,26,0],[7,97,76,32,91,40.9,0.871,32,1],[8,120,0,0,0,30,0.183,38,1],[6,137,61,0,0,24.2,0.151,55,0],[2,110,74,29,125,32.4,0.698,27,0],[4,99,72,17,0,25.6,0.294,28,0],[0,100,70,26,50,30.8,0.597,21,0],[5,86,68,28,71,30.2,0.364,24,0],[10,148,84,48,237,37.6,1.001,51,1],[9,134,74,33,60,25.9,0.46,81,0],[0,126,86,27,120,27.4,0.515,21,0],[0,142,78,32,220,32.6,0.449,36,1],[1,140,74,26,180,24.1,0.828,23,0],[1,128,48,45,194,40.5,0.613,24,1],[1,98,58,15,0,32.9,0.287,24,0],[4,112,82,22,0,34,0.405,26,0],[1,138,46,0,0,33.2,0.209,25,1],[6,100,76,0,0,19.6,0.6,28,0],[1,121,78,39,74,39,0.261,28,0],[8,134,90,28,0,37.7,0.783,34,0],[2,128,78,37,182,43.3,1.224,31,1],[9,130,73,29,0,34,0.484,52,1],[6,103,66,0,0,24.3,0.249,29,0],[1,118,58,36,94,33.3,0.261,23,0],[4,122,80,15,176,32,0.443,34,0],[2,112,86,42,160,38.4,0.246,28,0],[9,123,70,31,0,33.1,0.433,40,0],[4,85,58,22,49,27.8,0.306,28,0],[2,128,78,37,182,43.3,1.224,31,1],[2,105,80,45,191,33.7,0.711,29,1],[1,112,72,30,176,34.4,0.528,25,0],[1,74,70,40,0,35.3,0.705,24,0],[4,111,72,47,207,37.1,1.39,56,1],[1,109,56,21,135,25.2,0.833,23,0],[5,109,75,26,0,36,0.546,60,0],[9,134,74,33,60,25.9,0.46,81,0],[0,141,84,26,0,32.4,0.433,22,0],[2,119,70,32,325,33.3,0.282,33,0],[0,108,68,20,0,27.3,0.787,32,0],[7,187,50,33,392,33.9,0.826,34,1],[8,126,74,29,0,36.3,0.144,48,1],[3,99,54,19,86,25.6,0.154,24,0],[4,131,68,21,166,33.1,0.16,28,0],[7,112,78,40,0,39.4,0.236,38,0],[2,155,52,27,540,38.7,0.24,25,1],[4,108,66,0,0,27.5,0.362,28,0],[4,109,64,44,99,34.6,0.415,28,0],[3,119,68,28,165,34.1,0.277,29,1],[5,110,68,0,0,26,0.292,30,0],[4,128,70,0,0,34.3,0.303,24,0],[8,188,78,0,0,47.9,0.137,43,1],[6,154,78,41,140,46.1,0.571,27,0],[1,116,78,29,180,36.1,0.496,25,0],[7,145,65,29,75,34.7,0.641,41,0],[3,109,60,32,0,35.9,0.947,24,0],[0,102,78,40,90,34.5,0.238,24,0],[7,196,90,0,0,39.8,0.451,41,1],[2,127,46,21,335,34.4,0.176,22,0],[7,82,82,26,0,40.6,0.687,35,0],[3,116,74,15,105,26.3,0.107,24,0],[4,120,80,31,0,31.3,0.362,37,0],[4,99,76,15,51,23.2,0.223,21,0],[3,117,62,16,126,28,0.293,42,0],[1,130,70,13,105,25.9,0.472,22,0],[7,104,66,32,0,39.1,0.344,31,1],[0,112,70,18,0,31.3,0.255,24,0],[0,129,110,46,130,67.1,0.319,26,1],[7,147,76,0,0,39.4,0.257,43,1],[8,195,72,0,0,30,0.221,62,1],[2,104,74,18,156,29.9,0.722,23,0],[9,160,78,0,0,44.2,0.245,54,1],[2,154,56,9,0,27.6,0.258,22,0],[6,134,70,23,130,35.4,0.542,29,1],[0,95,66,27,0,28.1,0.399,21,0],[1,99,58,10,0,25.4,0.551,21,0],[4,103,60,33,192,24,0.966,33,0],[4,96,56,17,49,20.8,0.34,26,0],[0,108,68,20,0,27.3,0.787,32,0],[0,100,88,60,110,46.8,0.962,31,0],[1,87,78,27,32,34.6,0.101,22,0],[0,130,70,23,135,18.6,0.84,21,0],[1,113,92,18,0,31.3,0.278,25,1],[2,150,74,0,0,25.9,0.564,24,0],[10,115,0,0,0,0,0.261,30,1],[4,141,76,24,0,36.8,0.178,64,0],[8,79,92,24,0,44,0.519,29,0],[6,89,66,31,220,33.3,0.396,47,0],[3,98,62,16,113,19.8,0.255,28,0],[4,142,86,0,0,44,0.645,22,1],[1,120,78,29,87,44.3,0.726,41,0],[2,112,86,42,160,38.4,0.246,28,0],[1,134,88,14,143,26.4,0.255,30,0],[4,126,86,37,0,38.4,0.631,29,0],[3,108,80,26,0,29.3,0.112,23,0],[2,84,50,23,101,23.5,0.338,22,0],[5,123,74,40,77,34.1,0.269,28,0],[4,154,72,29,126,31.3,0.338,37,0],[7,152,88,44,0,50,0.337,36,1],[0,128,68,19,180,30.5,1.391,25,1],[0,106,70,37,148,39.4,0.605,22,0],[5,113,68,16,0,24.4,0.566,45,1],[7,87,50,22,0,28.5,0.349,31,0],[3,115,66,39,140,38.1,0.15,28,0],[6,116,78,29,180,36.1,0.496,25,0],[3,110,62,31,0,25.3,0.178,31,0],[4,115,64,0,0,26.3,0.396,47,0],[0,112,72,28,55,28.7,0.291,21,0],[9,103,78,25,304,29.6,1.282,46,0],[3,119,72,30,0,26.3,0.243,25,0],[0,120,74,0,0,18.8,0.63,30,1],[4,142,86,0,0,44,0.645,22,1],[2,116,66,0,0,28.8,0.562,25,0],[1,113,60,25,120,30.7,0.247,26,1],[2,120,76,37,105,39.7,0.215,29,0],[4,121,76,14,0,30.5,0.269,43,1],[8,175,75,20,0,32.5,0.636,38,1],[8,74,70,40,49,35.3,0.705,39,0],[9,110,82,28,0,32.5,0.231,69,0],[2,121,76,14,0,30.5,0.269,43,1],[3,107,62,13,48,22.9,0.678,23,1],[0,120,69,32,0,26.8,0.778,23,0],[0,167,0,0,0,32.3,0.839,30,1],[0,155,56,28,180,28.9,0.261,26,0],[4,103,60,33,192,24,0.966,33,0],[6,150,58,31,0,27.5,0.403,29,0],[8,136,70,0,0,37.6,0.415,57,1],[2,95,54,14,88,26.1,0.748,22,0],[2,85,65,0,0,39.6,0.93,27,0],[0,105,76,36,210,35.2,0.595,24,0],[4,91,70,0,0,27.2,0.698,28,0],[0,109,80,16,0,29.7,0.947,25,0],[0,108,68,20,0,27.3,0.787,32,0],[1,113,56,0,0,29.6,0.269,27,0],[3,120,72,30,0,30,0.361,27,0],[4,107,70,29,70,31.7,0.335,29,0],[4,109,60,0,0,28.9,0.25,25,0],[6,122,60,0,0,28.9,0.25,25,0],[1,117,66,24,0,29.6,0.569,21,0],[4,111,76,0,0,34.9,0.285,35,0],[4,100,66,0,0,28,0.262,31,0],[0,100,66,17,0,31.7,0.424,21,0],[4,148,60,27,318,30.9,0.15,29,1],[9,108,64,44,229,40.6,1.558,65,1],[1,67,78,15,0,18.6,0.388,21,0],[1,79,80,25,0,25.4,0.583,22,0],[1,74,70,40,0,35.3,0.705,24,0],[8,106,66,0,0,26.8,0.497,35,0],[3,106,72,0,0,25.8,0.207,27,0],[4,116,76,24,0,24.4,0.551,44,0],[3,113,50,10,85,29.5,0.626,25,0],[3,104,76,25,120,30.7,0.295,29,0],[4,123,62,0,0,32,0.226,35,1],[6,147,80,0,0,29.5,0.178,50,1],[0,124,56,13,105,21.8,0.452,21,0],[3,120,70,30,135,42.9,0.452,30,0],[1,90,62,12,43,27.2,0.58,24,0],[4,121,76,14,0,30.5,0.269,43,1],[0,125,96,0,0,22.5,0.262,21,0],[1,166,72,19,175,25.8,0.587,51,1],[5,166,76,36,168,45.7,0.673,38,1],[7,113,58,17,0,32.3,0.453,50,0],[5,121,72,23,112,26.2,0.245,30,0],[1,109,64,39,0,29.1,0.521,27,0],[5,102,80,37,166,38.3,0.419,27,1],[5,110,68,0,0,26,0.292,30,0],[0,106,56,29,132,29.7,0.695,25,0],[2,88,74,19,53,29,0.229,22,0],[7,106,46,32,290,22,0.259,31,0],[2,108,64,0,0,30.8,0.158,21,0],[1,93,56,11,0,22.5,0.417,22,0],[4,114,65,0,0,21.9,0.431,37,0],[3,139,54,0,0,25.6,0.402,22,1],[4,85,58,22,49,27.8,0.306,28,0],[4,123,80,15,176,32,0.443,34,0],[3,83,58,31,18,34.3,0.336,25,0],[2,83,66,23,50,32.2,0.497,22,0],[11,138,76,0,0,33.2,0.42,35,0],[0,126,84,29,215,30.7,0.52,24,0],[2,81,60,22,0,27.7,0.29,25,0],[5,88,78,30,0,27.6,0.258,37,0],[10,161,68,23,132,25.5,0.326,47,1],[10,140,74,26,180,24.1,0.828,23,0],[2,107,74,30,100,33.6,0.404,23,0],[4,114,64,0,0,28.9,0.126,24,0],[0,104,76,0,0,18.4,0.582,27,0],[3,78,70,0,0,32.5,0.27,36,0],[5,88,66,21,23,24.4,0.342,30,0],[1,115,70,30,96,34.6,0.529,32,1],[1,173,74,37,217,34.3,0.456,21,1],[1,140,74,26,180,24.1,0.828,23,0],[5,123,62,0,0,25,0.626,22,0],[0,126,84,29,215,30.7,0.52,24,0],[4,102,64,22,0,30.8,0.822,32,0],[1,112,60,23,55,25,0.349,27,0],[5,85,74,22,0,29,1.224,32,1],[2,108,80,0,0,27,0.259,52,1],[1,84,64,23,115,36.9,0.471,28,0],[2,116,80,16,0,29.8,0.23,25,0],[9,165,88,0,0,30.4,0.302,49,1],[4,146,85,27,100,28.9,0.189,27,0],[4,125,80,0,0,32.3,0.536,27,1],[3,86,58,31,0,32.5,0.679,23,0],[10,130,73,29,0,34,0.484,52,1],[5,127,56,28,152,28.7,0.801,21,0],[4,143,62,33,670,24.4,0.491,46,1],[4,112,78,40,0,39.4,0.236,38,0],[10,92,62,28,31,26.6,0.274,55,1],[0,104,76,0,0,18.4,0.582,27,0],[2,131,68,35,166,28.2,0.573,46,1],[7,109,80,31,0,35.9,1.127,43,1],[4,100,76,0,0,28.9,0.481,50,0],[1,108,66,35,0,34.1,0.198,34,0],[1,153,56,0,0,30.5,0.428,32,0],[0,118,64,23,89,0,1.731,21,0],[3,169,74,19,125,29.9,0.268,31,1],[3,110,62,31,0,25.3,0.178,31,0],[2,109,92,0,0,42.7,0.845,54,0],[0,136,74,36,0,38.7,0.239,24,0],[3,75,76,33,0,32.1,0.221,27,0],[2,102,80,19,0,32.9,0.498,37,0],[6,87,80,0,0,23.2,0.084,32,0],[1,97,64,19,82,18.2,0.299,21,0],[3,98,62,16,113,19.8,0.255,28,0],[4,74,65,41,0,30.5,0.472,27,0],[2,108,62,32,56,25.2,0.128,21,0],[2,56,56,28,45,24.2,0.332,22,0],[4,100,66,0,0,28,0.262,31,0],[0,119,66,27,0,38.8,0.259,22,0],[1,115,58,20,0,35.2,0.279,21,0],[2,89,90,30,0,33.5,0.292,42,0],[5,116,74,29,0,32.3,0.66,35,1],[0,115,70,30,96,34.6,0.529,32,1],[1,110,72,32,0,37.3,0.354,44,1],[2,109,88,0,0,35.3,0.916,29,0],[5,127,56,28,152,28.7,0.801,21,0],[1,91,54,25,100,25.2,0.234,23,0],[4,93,60,25,0,29.7,0.626,28,0],[4,103,60,33,192,24,0.966,33,0],[5,108,76,20,78,32.8,0.278,42,0],[3,75,90,28,64,38.8,0.278,29,0],[1,154,74,0,0,27.4,0.517,35,0],[3,93,36,19,0,29.5,0.626,29,0],[11,169,78,0,0,34.1,0.17,47,0],[5,130,82,0,0,39.1,0.956,37,1],[5,120,86,21,148,29.9,0.661,28,0],[1,97,70,15,0,18.2,0.147,21,0],[0,117,80,31,53,45.2,0.089,24,0],[4,99,72,17,0,25.6,0.294,28,0],[7,112,72,40,0,33.2,0.89,27,0],[4,99,72,17,0,25.6,0.294,28,0],[1,112,66,33,0,28.9,0.283,44,0],[0,124,56,13,105,21.8,0.452,21,0],[3,99,62,19,74,21.8,0.279,26,0],[0,109,88,30,0,32.5,0.855,38,1],[5,117,86,30,105,39.1,0.251,42,0],[1,126,60,0,0,30.1,0.349,47,1],[5,112,68,22,0,31.9,0.226,49,1],[0,162,76,56,100,53.2,0.759,25,1],[9,152,78,34,171,34.2,0.893,33,1],[1,111,62,13,182,24,0,23,0]
+];
+
+// ============================================================
+// ML ENGINE — JavaScript Implementations
+// ============================================================
+
+// Feature scaling (StandardScaler)
+function standardize(X){
+  const n=X.length,f=X[0].length;
+  const mean=new Array(f).fill(0),std=new Array(f).fill(0);
+  X.forEach(row=>row.forEach((v,j)=>mean[j]+=v/n));
+  X.forEach(row=>row.forEach((v,j)=>std[j]+=(v-mean[j])**2/n));
+  std.forEach((_,j)=>std[j]=Math.sqrt(std[j])||1);
+  return{scaled:X.map(row=>row.map((v,j)=>(v-mean[j])/std[j])),mean,std};
+}
+
+function scaleRow(row,mean,std){return row.map((v,j)=>(v-mean[j])/std[j]);}
+
+// Train/test split
+function trainTestSplit(X,y,testRatio=0.2){
+  const pairs=X.map((x,i)=>({x,y:y[i]}));
+  for(let i=pairs.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pairs[i],pairs[j]]=[pairs[j],pairs[i]];}
+  const nTest=Math.floor(pairs.length*testRatio);
+  return{trainX:pairs.slice(nTest).map(p=>p.x),trainY:pairs.slice(nTest).map(p=>p.y),testX:pairs.slice(0,nTest).map(p=>p.x),testY:pairs.slice(0,nTest).map(p=>p.y)};
+}
+
+// Metrics
+function accuracy(pred,true_){return pred.filter((p,i)=>p===true_[i]).length/pred.length;}
+function confusionMatrix(pred,true_){let tp=0,tn=0,fp=0,fn=0;pred.forEach((p,i)=>{if(p===1&&true_[i]===1)tp++;else if(p===0&&true_[i]===0)tn++;else if(p===1&&true_[i]===0)fp++;else fn++;});return{tp,tn,fp,fn};}
+function precision(cm){return cm.tp/(cm.tp+cm.fp)||0;}
+function recall(cm){return cm.tp/(cm.tp+cm.fn)||0;}
+function f1Score(cm){const p=precision(cm),r=recall(cm);return 2*p*r/(p+r)||0;}
+
+// ---- Logistic Regression ----
+class LogisticRegression{
+  constructor(lr=0.05,epochs=600){this.lr=lr;this.epochs=epochs;}
+  sigmoid(z){return 1/(1+Math.exp(-Math.max(-30,Math.min(30,z))));}
+  dot(a,b){return a.reduce((s,v,i)=>s+v*b[i],0);}
+  train(X,y){
+    this.w=new Array(X[0].length).fill(0);this.b=0;
+    for(let e=0;e<this.epochs;e++){
+      const grads=new Array(X[0].length).fill(0);let db=0;
+      X.forEach((xi,i)=>{const err=this.sigmoid(this.dot(xi,this.w)+this.b)-y[i];xi.forEach((v,j)=>grads[j]+=err*v/X.length);db+=err/X.length;});
+      this.w=this.w.map((w,j)=>w-this.lr*grads[j]);this.b-=this.lr*db;
+    }
+  }
+  predictProba(x){return this.sigmoid(this.dot(x,this.w)+this.b);}
+  predict(x){return this.predictProba(x)>=0.5?1:0;}
+}
+
+// ---- KNN ----
+class KNN{
+  constructor(k=5){this.k=k;}
+  dist(a,b){return Math.sqrt(a.reduce((s,v,i)=>s+(v-b[i])**2,0));}
+  train(X,y){this.X=X;this.y=y;}
+  predictProba(x){
+    const dists=this.X.map((xi,i)=>({d:this.dist(x,xi),label:this.y[i]}));
+    dists.sort((a,b)=>a.d-b.d);
+    return dists.slice(0,this.k).reduce((s,v)=>s+v.label,0)/this.k;
+  }
+  predict(x){return this.predictProba(x)>=0.5?1:0;}
+}
+
+// ---- Decision Tree ----
+class DecisionTree{
+  constructor(maxDepth=8,minSamples=3){this.maxDepth=maxDepth;this.minSamples=minSamples;}
+  gini(y){const n=y.length;if(!n)return 0;const p=y.filter(v=>v===1).length/n;return 1-p*p-(1-p)*(1-p);}
+  bestSplit(X,y){
+    let best={gain:-1,fi:0,thresh:0};
+    for(let fi=0;fi<X[0].length;fi++){
+      const vals=[...new Set(X.map(r=>r[fi]))].sort((a,b)=>a-b);
+      for(let i=0;i<vals.length-1;i++){
+        const t=(vals[i]+vals[i+1])/2;
+        const lI=X.map((_,k)=>k).filter(k=>X[k][fi]<=t);
+        const rI=X.map((_,k)=>k).filter(k=>X[k][fi]>t);
+        if(!lI.length||!rI.length)continue;
+        const g=this.gini(y)-(lI.length/y.length)*this.gini(lI.map(k=>y[k]))-(rI.length/y.length)*this.gini(rI.map(k=>y[k]));
+        if(g>best.gain){best={gain:g,fi,thresh:t};}
+      }
+    }
+    return best;
+  }
+  buildNode(X,y,depth){
+    const pos=y.filter(v=>v===1).length;
+    if(depth>=this.maxDepth||y.length<=this.minSamples||pos===0||pos===y.length)return{leaf:true,val:pos/y.length};
+    const split=this.bestSplit(X,y);
+    if(split.gain<=0)return{leaf:true,val:pos/y.length};
+    const lI=X.map((_,k)=>k).filter(k=>X[k][split.fi]<=split.thresh);
+    const rI=X.map((_,k)=>k).filter(k=>X[k][split.fi]>split.thresh);
+    return{leaf:false,...split,
+      left:this.buildNode(lI.map(k=>X[k]),lI.map(k=>y[k]),depth+1),
+      right:this.buildNode(rI.map(k=>X[k]),rI.map(k=>y[k]),depth+1)};
+  }
+  train(X,y){this.root=this.buildNode(X,y,0);}
+  predictProba(x,node=this.root){if(node.leaf)return node.val;return x[node.fi]<=node.thresh?this.predictProba(x,node.left):this.predictProba(x,node.right);}
+  predict(x){return this.predictProba(x)>=0.5?1:0;}
+}
+
+// ---- Random Forest ----
+class RandomForest{
+  constructor(nTrees=100,maxDepth=7){this.nTrees=nTrees;this.maxDepth=maxDepth;}
+  bootstrap(X,y){
+    const n=X.length,bX=[],bY=[];
+    for(let i=0;i<n;i++){const r=Math.floor(Math.random()*n);bX.push(X[r]);bY.push(y[r]);}
+    return{bX,bY};
+  }
+  train(X,y){
+    this.trees=[];
+    for(let i=0;i<this.nTrees;i++){
+      const{bX,bY}=this.bootstrap(X,y);
+      const t=new DecisionTree(this.maxDepth,2);
+      t.train(bX,bY);this.trees.push(t);
+    }
+    // Feature importance via impurity decrease (simplified)
+    this.importance=new Array(X[0].length).fill(0);
+    this.trees.forEach(t=>{const imp=new Array(X[0].length).fill(0);this._nodeImp(t.root,imp);imp.forEach((v,j)=>this.importance[j]+=v);});
+    const sumImp=this.importance.reduce((s,v)=>s+v,1e-9);
+    this.importance=this.importance.map(v=>v/sumImp);
+  }
+  _nodeImp(node,imp){if(!node||node.leaf)return;imp[node.fi]+=node.gain;this._nodeImp(node.left,imp);this._nodeImp(node.right,imp);}
+  predictProba(x){return this.trees.reduce((s,t)=>s+t.predictProba(x),0)/this.trees.length;}
+  predict(x){return this.predictProba(x)>=0.5?1:0;}
+}
+
+// ---- Naive Bayes ----
+class NaiveBayes{
+  train(X,y){
+    this.classes=[0,1];this.stats={};
+    this.classes.forEach(c=>{
+      const rows=X.filter((_,i)=>y[i]===c);
+      this.stats[c]={prior:rows.length/X.length,means:X[0].map((_,j)=>rows.reduce((s,r)=>s+r[j],0)/rows.length),vars:X[0].map((_,j)=>{const m=this.stats[c].means[j];return rows.reduce((s,r)=>s+(r[j]-m)**2,0)/rows.length||1e-9;})};
+    });
+  }
+  gaussian(x,mean,v){return Math.exp(-0.5*(x-mean)**2/v)/Math.sqrt(2*Math.PI*v);}
+  predictLog(x){
+    return this.classes.map(c=>{
+      let lp=Math.log(this.stats[c].prior);
+      x.forEach((xi,j)=>lp+=Math.log(this.gaussian(xi,this.stats[c].means[j],this.stats[c].vars[j])||1e-300));
+      return lp;
+    });
+  }
+  predictProba(x){const logs=this.predictLog(x);const maxL=Math.max(...logs);const exps=logs.map(l=>Math.exp(l-maxL));const sum=exps.reduce((s,v)=>s+v,0);return exps[1]/sum;}
+  predict(x){return this.predictProba(x)>=0.5?1:0;}
+}
+
+// ============================================================
+// GLOBAL MODEL STORE
+// ============================================================
+let trainedModels={};
+let scalerParams={};
+let splitData=null;
+let modelCompareChartInst=null;
+let rocChartInst=null;
+let dsDistChartInst=null;
+
+const MODEL_DEFS={
+  lr:{name:'Logistic Regression',color:'#60a5fa'},
+  knn:{name:'KNN (k=5)',color:'#a78bfa'},
+  dt:{name:'Decision Tree',color:'#4ade80'},
+  rf:{name:'Random Forest',color:'#fbbf24'},
+  nb:{name:'Naïve Bayes',color:'#f87171'}
+};
+
+function prepareData(testRatio=0.2){
+  const X=PIMA_DATA.map(r=>r.slice(0,8));
+  const y=PIMA_DATA.map(r=>r[8]);
+  const split=trainTestSplit(X,y,testRatio);
+  const{scaled:scaledTrain,mean,std}=standardize(split.trainX);
+  const scaledTest=split.testX.map(r=>scaleRow(r,mean,std));
+  scalerParams={mean,std};
+  splitData={trainX:scaledTrain,trainY:split.trainY,testX:scaledTest,testY:split.testY};
+  return splitData;
+}
+
+function log(msg,cls='log-info'){
+  const el=document.getElementById('train-log');
+  el.innerHTML+=`<div class="${cls}">${msg}</div>`;
+  el.scrollTop=el.scrollHeight;
+}
+
+function trainAllModels(){
+  const selectedBtn=[...document.querySelectorAll('#model-selector .sel-btn.active')];
+  const selected=selectedBtn.map(b=>b.dataset.model);
+  if(!selected.length){showToast('Select at least one model.');return;}
+  const testRatio=+document.getElementById('split-select').value;
+  document.getElementById('train-log').innerHTML='';
+  log(`<span class="log-dim">========= Training Start =========</span>`);
+  log(`Split: ${Math.round((1-testRatio)*100)}% train / ${Math.round(testRatio*100)}% test`,'log-dim');
+  const data=prepareData(testRatio);
+  log(`Train samples: ${data.trainX.length}  Test samples: ${data.testX.length}`,'log-dim');
+  // Train async to not block UI
+  let idx=0;
+  const trainNext=()=>{
+    if(idx>=selected.length){
+      log(`<span class="log-ok">✔ All models trained successfully!</span>`);
+      renderResults();
+      return;
+    }
+    const key=selected[idx++];
+    log(`⚙ Training ${MODEL_DEFS[key].name}...`,'log-info');
+    setTimeout(()=>{
+      const t0=Date.now();
+      let m;
+      switch(key){
+        case'lr':m=new LogisticRegression(0.05,600);m.train(data.trainX,data.trainY);break;
+        case'knn':m=new KNN(5);m.train(data.trainX,data.trainY);break;
+        case'dt':m=new DecisionTree(8,3);m.train(data.trainX,data.trainY);break;
+        case'rf':m=new RandomForest(60,7);m.train(data.trainX,data.trainY);break;
+        case'nb':m=new NaiveBayes();m.train(data.trainX,data.trainY);break;
+      }
+      const preds=data.testX.map(x=>m.predict(x));
+      const probas=data.testX.map(x=>m.predictProba(x));
+      const acc=accuracy(preds,data.testY);
+      const cm=confusionMatrix(preds,data.testY);
+      trainedModels[key]={model:m,preds,probas,acc,cm,p:precision(cm),r:recall(cm),f1:f1Score(cm)};
+      log(`  ✓ ${MODEL_DEFS[key].name}: Acc=${(acc*100).toFixed(1)}%  F1=${(f1Score(cm)*100).toFixed(1)}%  (${Date.now()-t0}ms)`,'log-ok');
+      trainNext();
+    },50);
+  };
+  trainNext();
+}
+
+function renderResults(){
+  // Dashboard bars
+  const dashMap={lr:'lr',knn:'knn',dt:'dt',rf:'rf',nb:'nb'};
+  let bestAcc=0,bestName='';
+  Object.entries(trainedModels).forEach(([k,v])=>{
+    const pct=(v.acc*100).toFixed(1)+'%';
+    const el=document.getElementById('dash-'+k);const bar=document.getElementById('bar-'+k);
+    if(el)el.textContent=pct;if(bar)bar.style.width=v.acc*100+'%';
+    const regEl=document.getElementById('reg-'+k+'-acc');if(regEl){regEl.textContent=pct;regEl.style.color='var(--green)';}
+    if(v.acc>bestAcc){bestAcc=v.acc;bestName=MODEL_DEFS[k].name;}
+  });
+  if(bestAcc>0){document.getElementById('stat-best-acc').textContent=(bestAcc*100).toFixed(1)+'%';document.getElementById('stat-best-name').textContent='Best: '+bestName;}
+  // Render compare list
+  renderModelCompare();
+  // Feature importance
+  if(trainedModels.rf)renderFeatureImportance();
+  // Confusion matrix selector
+  renderCMSelector();
+  // Charts
+  renderModelCompareChart();
+  renderROCChart();
+  showToast('Training complete! Check ML Lab for results.');
+}
+
+function renderModelCompare(){
+  const el=document.getElementById('model-compare-list');
+  const entries=Object.entries(trainedModels).sort((a,b)=>b[1].acc-a[1].acc);
+  if(!entries.length){el.innerHTML='<div class="empty-state"><p>No models trained yet.</p></div>';return;}
+  el.innerHTML=entries.map(([k,v],i)=>`
+    <div class="model-compare-row">
+      <div class="mc-name">${MODEL_DEFS[k].name}</div>
+      <div class="mc-bar-wrap"><div class="mc-bar" style="width:${v.acc*100}%;background:${MODEL_DEFS[k].color}"></div></div>
+      <div class="mc-val" style="color:${MODEL_DEFS[k].color}">${(v.acc*100).toFixed(1)}%</div>
+      <span class="mc-badge" style="background:${i===0?'rgba(74,222,128,0.15)':'rgba(255,255,255,0.07)'};color:${i===0?'var(--green)':'var(--ink3)'};border:1px solid ${i===0?'rgba(74,222,128,0.3)':'rgba(255,255,255,0.1)'};">${i===0?'BEST':'#'+(i+1)}</span>
+      <span style="font-size:11px;color:var(--ink3);margin-left:6px;">F1: ${(v.f1*100).toFixed(1)}%</span>
+    </div>`).join('');
+}
+
+function renderFeatureImportance(){
+  const rf=trainedModels.rf;if(!rf)return;
+  const names=['Pregnancies','Glucose','Blood Pressure','Skin Thickness','Insulin','BMI','DPF','Age'];
+  const pairs=names.map((n,i)=>({n,v:rf.model.importance[i]})).sort((a,b)=>b.v-a.v);
+  document.getElementById('feat-importance').innerHTML=pairs.map(p=>`
+    <div class="feat-importance-row">
+      <div class="fi-name">${p.n}</div>
+      <div class="fi-bar-wrap"><div class="fi-bar" style="width:${p.v*100}%"></div></div>
+      <div class="fi-val">${(p.v*100).toFixed(1)}%</div>
+    </div>`).join('');
+}
+
+function renderCMSelector(){
+  const trained=Object.keys(trainedModels);
+  document.getElementById('cm-selector').innerHTML=trained.map(k=>`<button class="sel-btn" onclick="showCM('${k}',this)">${MODEL_DEFS[k].name}</button>`).join('');
+  if(trained.length)showCM(trained[0],document.querySelector('#cm-selector .sel-btn'));
+}
+
+function showCM(key,btn){
+  document.querySelectorAll('#cm-selector .sel-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
+  const v=trainedModels[key];if(!v)return;
+  document.getElementById('cm-model-name').textContent=MODEL_DEFS[key].name;
+  document.getElementById('confusion-matrix').innerHTML=`
+    <div style="margin-bottom:8px;font-size:11px;color:var(--ink3);">Actual → / Predicted ↓</div>
+    <div class="confusion-grid">
+      <div class="conf-cell conf-tp"><div class="conf-num">${v.cm.tp}</div><div class="conf-lbl">TP</div></div>
+      <div class="conf-cell conf-fp"><div class="conf-num">${v.cm.fp}</div><div class="conf-lbl">FP</div></div>
+      <div class="conf-cell conf-fn"><div class="conf-num">${v.cm.fn}</div><div class="conf-lbl">FN</div></div>
+      <div class="conf-cell conf-tn"><div class="conf-num">${v.cm.tn}</div><div class="conf-lbl">TN</div></div>
+    </div>`;
+  document.getElementById('cm-metrics').innerHTML=`
+    <div class="out-row" style="font-size:12px;"><span class="out-key">Accuracy</span><span class="out-val" style="color:var(--blue)">${(v.acc*100).toFixed(2)}%</span></div>
+    <div class="out-row" style="font-size:12px;"><span class="out-key">Precision</span><span class="out-val" style="color:var(--green)">${(v.p*100).toFixed(2)}%</span></div>
+    <div class="out-row" style="font-size:12px;"><span class="out-key">Recall</span><span class="out-val" style="color:var(--amber)">${(v.r*100).toFixed(2)}%</span></div>
+    <div class="out-row" style="font-size:12px;"><span class="out-key">F1 Score</span><span class="out-val" style="color:var(--purple)">${(v.f1*100).toFixed(2)}%</span></div>
+    <div class="out-row" style="font-size:12px;"><span class="out-key">Test Samples</span><span class="out-val">${splitData?splitData.testX.length:'—'}</span></div>`;
+}
+
+function renderModelCompareChart(){
+  const ctx=document.getElementById('modelCompareChart');
+  if(!ctx)return;
+  if(modelCompareChartInst)modelCompareChartInst.destroy();
+  const labels=Object.keys(trainedModels).map(k=>MODEL_DEFS[k].name);
+  const accs=Object.values(trainedModels).map(v=>+(v.acc*100).toFixed(1));
+  const f1s=Object.values(trainedModels).map(v=>+(v.f1*100).toFixed(1));
+  const precs=Object.values(trainedModels).map(v=>+(v.p*100).toFixed(1));
+  modelCompareChartInst=new Chart(ctx,{type:'bar',data:{labels,datasets:[{label:'Accuracy',data:accs,backgroundColor:'rgba(96,165,250,0.7)',borderRadius:4},{label:'F1 Score',data:f1s,backgroundColor:'rgba(74,222,128,0.7)',borderRadius:4},{label:'Precision',data:precs,backgroundColor:'rgba(251,191,36,0.7)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#a8b4d0',font:{size:11}}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8891b0',font:{size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8891b0',font:{size:11}},beginAtZero:true,max:100}}}});
+}
+
+function renderROCChart(){
+  const ctx=document.getElementById('rocChart');
+  if(!ctx)return;
+  if(rocChartInst)rocChartInst.destroy();
+  if(!splitData)return;
+  const datasets=[];
+  // Diagonal (random classifier)
+  datasets.push({label:'Random',data:[{x:0,y:0},{x:1,y:1}],borderColor:'rgba(255,255,255,0.2)',borderDash:[5,5],pointRadius:0,borderWidth:1,fill:false});
+  Object.entries(trainedModels).forEach(([k,v])=>{
+    const points=[];
+    const thresholds=[...Array(21)].map((_,i)=>i/20);
+    thresholds.forEach(t=>{
+      const pred=v.probas.map(p=>p>=t?1:0);
+      const cm=confusionMatrix(pred,splitData.testY);
+      const fpr=cm.fp/(cm.fp+cm.tn)||0;
+      const tpr=cm.tp/(cm.tp+cm.fn)||0;
+      points.push({x:fpr,y:tpr});
+    });
+    points.sort((a,b)=>a.x-b.x);
+    datasets.push({label:MODEL_DEFS[k].name,data:points,borderColor:MODEL_DEFS[k].color,backgroundColor:MODEL_DEFS[k].color+'22',pointRadius:1,borderWidth:2,fill:false,tension:.3});
+  });
+  rocChartInst=new Chart(ctx,{type:'line',data:{datasets},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#a8b4d0',font:{size:10}}}},scales:{x:{type:'linear',title:{display:true,text:'FPR',color:'#5d6b8a'},ticks:{color:'#5d6b8a',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'},min:0,max:1},y:{title:{display:true,text:'TPR',color:'#5d6b8a'},ticks:{color:'#5d6b8a',font:{size:10}},grid:{color:'rgba(255,255,255,0.04)'},min:0,max:1}}}});
+}
+
+function resetModels(){
+  trainedModels={};splitData=null;scalerParams={};
+  ['lr','knn','dt','rf','nb'].forEach(k=>{
+    const el=document.getElementById('dash-'+k);const bar=document.getElementById('bar-'+k);
+    if(el)el.textContent='—';if(bar)bar.style.width='0%';
+    const reg=document.getElementById('reg-'+k+'-acc');if(reg){reg.textContent='—';reg.style.color='var(--green)';}
+  });
+  document.getElementById('train-log').innerHTML='<span class="log-dim">// Models reset. Ready to train.</span>';
+  document.getElementById('model-compare-list').innerHTML='<div class="empty-state"><p>Train models above to see comparison.</p></div>';
+  document.getElementById('feat-importance').innerHTML='<div class="empty-state"><p>Train Random Forest to see feature importance.</p></div>';
+  document.getElementById('cm-selector').innerHTML='';
+  document.getElementById('confusion-matrix').innerHTML='<div class="empty-state"><p>Train models to view.</p></div>';
+  document.getElementById('cm-metrics').innerHTML='Metrics appear after training.';
+  document.getElementById('cm-model-name').textContent='Select a Model';
+  document.getElementById('stat-best-acc').textContent='—';
+  document.getElementById('stat-best-name').textContent='Train models to see';
+  if(modelCompareChartInst){modelCompareChartInst.destroy();modelCompareChartInst=null;}
+  if(rocChartInst){rocChartInst.destroy();rocChartInst=null;}
+  showToast('Models reset.');
+}
+
+// ============================================================
+// SIMULATOR — ML PREDICTION
+// ============================================================
+let hybridChartInst=null;
+
+function runMLPrediction(){
+  const name=document.getElementById('s-name').value.trim()||'Patient';
+  const preg=+document.getElementById('s-preg').value||0;
+  const glucose=+document.getElementById('s-glucose').value||120;
+  const bp=+document.getElementById('s-bp').value||72;
+  const skin=+document.getElementById('s-skin').value||23;
+  const insulin=+document.getElementById('s-insulin').value||30;
+  const bmi=+document.getElementById('s-bmi').value||26;
+  const age=+document.getElementById('s-age').value||35;
+  const dpf=0.5; // default pedigree function
+  const rawFeatures=[preg,glucose,bp,skin,insulin,bmi,dpf,age];
+  const selectedModel=document.getElementById('sim-model-select').value;
+  // Check if models are trained
+  const hasAny=Object.keys(trainedModels).length>0;
+  let features=rawFeatures;
+  if(hasAny&&scalerParams.mean){features=scaleRow(rawFeatures,scalerParams.mean,scalerParams.std);}
+  // Rule-based fallback if no model trained
+  function ruleBased(f){
+    const[p,g,b,s,ins,bm,dpf2,a]=f;
+    const score=(g-80)/220*0.40+(bm-18)/42*0.25+(a-20)/80*0.20+(b-60)/80*0.10+p/17*0.05;
+    return Math.min(0.97,Math.max(0.01,score));
+  }
+  const results={};
+  const modelOrder=['lr','knn','dt','rf','nb'];
+  modelOrder.forEach(k=>{
+    if(trainedModels[k]){
+      results[k]=trainedModels[k].model.predictProba(features);
+    } else {
+      // Rough rule-based per model
+      results[k]=ruleBased(rawFeatures)+((Math.random()-0.5)*0.05);
+      results[k]=Math.min(0.97,Math.max(0.03,results[k]));
+    }
+  });
+  const mainProba=results[selectedModel];
+  const mainPred=mainProba>=0.5?'Positive (Diabetic)':'Negative (Non-Diabetic)';
+  const rColor=mainProba>=0.5?'var(--red)':mainProba>=0.35?'var(--amber)':'var(--green)';
+  const riskLabel=mainProba>=0.6?'HIGH':mainProba>=0.35?'MEDIUM':'LOW';
+  document.getElementById('pred-output').innerHTML=`
+    <div style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--ink3);margin-bottom:10px">Patient: ${name} ${hasAny?'<span style="color:var(--green);font-size:10px;">[ML Model]</span>':'<span style="color:var(--amber);font-size:10px;">[Rule-Based — Train models for ML]</span>'}</div>
+    <div class="out-row"><span class="out-key">🔬 Model Used</span><span class="out-val" style="color:var(--blue)">${MODEL_DEFS[selectedModel].name}</span></div>
+    <div class="out-row"><span class="out-key">🩺 Diabetes Probability</span><span class="out-val" style="color:${rColor}">${(mainProba*100).toFixed(1)}%</span></div>
+    <div class="out-row"><span class="out-key">📋 Prediction</span><span class="out-val" style="color:${rColor}">${mainPred}</span></div>
+    <div class="out-row"><span class="out-key">⚡ Risk Level</span><span class="out-val" style="color:${rColor}">${riskLabel}</span></div>`;
+  // All models output
+  document.getElementById('all-models-output').innerHTML=modelOrder.map(k=>`
+    <div class="out-row"><span class="out-key">${MODEL_DEFS[k].name}</span><span class="out-val" style="color:${results[k]>=0.5?'var(--red)':results[k]>=0.35?'var(--amber)':'var(--green)'};">${(results[k]*100).toFixed(1)}% ${results[k]>=0.5?'⚠':'✓'}</span></div>`).join('');
+  // Recommendations
+  const meds=mainProba>=0.5?[['💊','Metformin 500mg','First-line T2D therapy, twice daily'],['🩺','HbA1c Test','Quarterly monitoring required'],['🥗','Low-glycemic Diet','Reduce refined carbs, increase fibre'],['🏃','Aerobic Exercise','30 min/day target, 5x/week']]:[['✅','No Diabetes Indicated','Maintain healthy lifestyle'],['🥗','Balanced Diet','Continue low-sugar, high-fibre diet'],['🏋️','Exercise Routine','150 min moderate activity per week'],['📋','Annual Check-up','Re-screen every 3 years']];
+  document.getElementById('med-output').innerHTML=meds.map(([i,t,d])=>`<div class="out-row"><span class="out-key">${i} ${t}</span><span style="font-size:10px;color:var(--ink3)">${d}</span></div>`).join('');
+  // Chart
+  if(hybridChartInst)hybridChartInst.destroy();
+  hybridChartInst=new Chart(document.getElementById('hybridChart'),{type:'bar',data:{labels:modelOrder.map(k=>MODEL_DEFS[k].name),datasets:[{data:modelOrder.map(k=>+(results[k]*100).toFixed(1)),backgroundColor:modelOrder.map(k=>MODEL_DEFS[k].color+'BB'),borderRadius:6}]},options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8891b0',font:{size:11}},max:100},y:{grid:{display:false},ticks:{color:'#a8b4d0',font:{size:11}}}}}});
+  showToast(`Prediction complete for ${name}`);
+}
+
+// ============================================================
+// CHARTS
+// ============================================================
+let chartsInited=false;
+function initCharts(){
+  if(chartsInited)return;chartsInited=true;
+  // Feature distribution chart
+  const ctx=document.getElementById('featureDistChart');
+  if(ctx){
+    const features=['Glucose','BMI','Blood Pressure','Age','Insulin'];
+    const diabetic=PIMA_DATA.filter(r=>r[8]===1);
+    const healthy=PIMA_DATA.filter(r=>r[8]===0);
+    const fIdx=[1,5,2,7,4];
+    const avgD=fIdx.map(j=>+(diabetic.reduce((s,r)=>s+r[j],0)/diabetic.length).toFixed(1));
+    const avgH=fIdx.map(j=>+(healthy.reduce((s,r)=>s+r[j],0)/healthy.length).toFixed(1));
+    new Chart(ctx,{type:'bar',data:{labels:features,datasets:[{label:'Non-Diabetic',data:avgH,backgroundColor:'rgba(96,165,250,0.7)',borderRadius:4},{label:'Diabetic',data:avgD,backgroundColor:'rgba(248,113,113,0.7)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#a8b4d0',font:{size:11}}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8891b0',font:{size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8891b0',font:{size:11}}}}}});
+  }
+  // Dataset dist chart (ML Lab)
+  const dsCtx=document.getElementById('dsDistChart');
+  if(dsCtx&&!dsDistChartInst){
+    const glucBins=[0,80,100,120,140,160,180,200,220];
+    const countD=glucBins.slice(0,-1).map((_,i)=>PIMA_DATA.filter(r=>r[8]===1&&r[1]>=glucBins[i]&&r[1]<glucBins[i+1]).length);
+    const countH=glucBins.slice(0,-1).map((_,i)=>PIMA_DATA.filter(r=>r[8]===0&&r[1]>=glucBins[i]&&r[1]<glucBins[i+1]).length);
+    const labels=glucBins.slice(0,-1).map((v,i)=>`${v}-${glucBins[i+1]}`);
+    dsDistChartInst=new Chart(dsCtx,{type:'bar',data:{labels,datasets:[{label:'Non-Diabetic',data:countH,backgroundColor:'rgba(96,165,250,0.65)',borderRadius:3},{label:'Diabetic',data:countD,backgroundColor:'rgba(248,113,113,0.65)',borderRadius:3}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#a8b4d0',font:{size:11}}},title:{display:true,text:'Glucose Distribution by Outcome',color:'#a8b4d0',font:{size:12}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8891b0',font:{size:11}},title:{display:true,text:'Glucose Level (mg/dL)',color:'#5d6b8a'}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8891b0',font:{size:11}},title:{display:true,text:'Count',color:'#5d6b8a'}}}}});
+  }
+  // CV Chart
+  const cvCtx=document.getElementById('cvChart');
+  if(cvCtx){
+    new Chart(cvCtx,{type:'bar',data:{labels:['LR','KNN','DT','RF','NB'],datasets:[{label:'Accuracy',data:[77,72,73,79,75],backgroundColor:'rgba(37,99,235,.7)',borderRadius:4},{label:'F1 Score',data:[69,63,65,72,67],backgroundColor:'rgba(22,163,74,.7)',borderRadius:4},{label:'AUC-ROC',data:[83,74,76,86,80],backgroundColor:'rgba(217,119,6,.7)',borderRadius:4}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#a8b4d0',font:{size:11}}}},scales:{x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8891b0',font:{size:11}}},y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#8891b0',font:{size:11}},beginAtZero:true,max:100}}}});
+  }
+}
+
+// ============================================================
+// MODEL SELECTOR TOGGLE
+// ============================================================
+document.addEventListener('DOMContentLoaded',()=>{
+  document.querySelectorAll('#model-selector .sel-btn').forEach(btn=>{
+    btn.addEventListener('click',()=>btn.classList.toggle('active'));
+  });
+});
+
+// ============================================================
+// AUTH
+// ============================================================
+function getUsers(){const d=[{username:'admin',password:'health123',name:'Administrator'}];const s=localStorage.getItem('hr_users');return s?JSON.parse(s):d;}
+function saveUsers(u){localStorage.setItem('hr_users',JSON.stringify(u));}
+function getSession(){return sessionStorage.getItem('hr_sess');}
+function setSession(u){sessionStorage.setItem('hr_sess',u);}
+function clearSession(){sessionStorage.removeItem('hr_sess');}
+function switchAuthTab(tab,btn){document.querySelectorAll('.auth-tab').forEach(b=>b.classList.remove('active'));btn.classList.add('active');document.getElementById('auth-login').style.display=tab==='login'?'block':'none';document.getElementById('auth-register').style.display=tab==='register'?'block':'none';document.getElementById('login-error').classList.remove('show');document.getElementById('reg-error').classList.remove('show');const t=document.querySelector('.auth-title'),s=document.querySelector('.auth-sub');if(tab==='login'){t.textContent='Welcome back';s.textContent='Sign in to access your dashboard';}else{t.textContent='Create account';s.textContent='Join HealthRec today';}}
+function doLogin(){const user=document.getElementById('login-user').value.trim(),pass=document.getElementById('login-pass').value,err=document.getElementById('login-error');if(!user||!pass){err.textContent='Please enter username and password.';err.classList.add('show');return;}const found=getUsers().find(u=>u.username===user&&u.password===pass);if(!found){err.textContent='Invalid username or password.';err.classList.add('show');return;}err.classList.remove('show');setSession(user);enterApp(found);}
+function doRegister(){const name=document.getElementById('reg-name').value.trim(),user=document.getElementById('reg-user').value.trim(),pass=document.getElementById('reg-pass').value,pass2=document.getElementById('reg-pass2').value,err=document.getElementById('reg-error');if(!name||!user||!pass||!pass2){err.textContent='Please fill all fields.';err.classList.add('show');return;}if(pass.length<6){err.textContent='Password must be at least 6 characters.';err.classList.add('show');return;}if(pass!==pass2){err.textContent='Passwords do not match.';err.classList.add('show');return;}const users=getUsers();if(users.find(u=>u.username===user)){err.textContent='Username already taken.';err.classList.add('show');return;}users.push({username:user,password:pass,name});saveUsers(users);err.classList.remove('show');setSession(user);enterApp({username:user,name});}
+function enterApp(userObj){const ini=userObj.name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2);document.getElementById('nav-avatar').textContent=ini;document.getElementById('nav-username').textContent=userObj.name.split(' ')[0];const lp=document.getElementById('login-page');lp.classList.add('hiding');setTimeout(()=>lp.classList.add('gone'),520);const app=document.getElementById('app-shell');app.classList.add('visible');setTimeout(()=>{initCharts();renderPatients();renderRiskList();refreshSimSelect();animateCards('page-dashboard');},200);}
+function doLogout(){clearSession();document.getElementById('app-shell').classList.remove('visible');const lp=document.getElementById('login-page');lp.classList.remove('gone','hiding');document.getElementById('login-user').value='';document.getElementById('login-pass').value='';document.getElementById('login-error').classList.remove('show');}
+window.addEventListener('DOMContentLoaded',()=>{const sess=getSession();if(sess){const found=getUsers().find(u=>u.username===sess);if(found){enterApp(found);return;}}['login-user','login-pass'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();}));['reg-name','reg-user','reg-pass','reg-pass2'].forEach(id=>document.getElementById(id).addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();}));});
+
+// ============================================================
+// PATIENT DATA
+// ============================================================
+const SAMPLE=[
+  {id:'s1',first:'Suresh',last:'Kumar',age:58,gender:'Male',bp:148,glucose:168,hr:102,bmi:31.2,chol:241,condition:'Type 2 Diabetes'},
+  {id:'s2',first:'Priya',last:'Menon',age:45,gender:'Female',bp:155,glucose:138,hr:88,bmi:26.4,chol:210,condition:'Hypertension'},
+  {id:'s3',first:'Rahul',last:'Joshi',age:62,gender:'Male',bp:162,glucose:112,hr:96,bmi:29.1,chol:255,condition:'Cardiovascular Risk'},
+  {id:'s4',first:'Anjali',last:'Singh',age:38,gender:'Female',bp:120,glucose:92,hr:74,bmi:22.8,chol:172,condition:''},
+  {id:'s5',first:'Vikram',last:'Patel',age:55,gender:'Male',bp:144,glucose:158,hr:90,bmi:30.5,chol:238,condition:'Type 2 Diabetes'},
+  {id:'s6',first:'Meena',last:'Reddy',age:50,gender:'Female',bp:130,glucose:105,hr:82,bmi:27.3,chol:196,condition:'Thyroid Disorder'},
+  {id:'s7',first:'Aditya',last:'Nair',age:41,gender:'Male',bp:118,glucose:88,hr:70,bmi:23.1,chol:165,condition:''},
+  {id:'s8',first:'Deepa',last:'Iyer',age:66,gender:'Female',bp:158,glucose:178,hr:98,bmi:33.0,chol:262,condition:'Chronic Kidney Disease'},
+];
+function loadPatients(){const s=localStorage.getItem('hr_patients');let p=s?JSON.parse(s):[];if(!localStorage.getItem('hr_init')){p=[...SAMPLE,...p];localStorage.setItem('hr_patients',JSON.stringify(p));localStorage.setItem('hr_init','1');}return p;}
+function savePatients(p){localStorage.setItem('hr_patients',JSON.stringify(p));}
+function calcRisk(p){let s=0;if(p.bp>140)s+=2;else if(p.bp>120)s+=1;if(p.glucose>140)s+=2;else if(p.glucose>100)s+=1;if(p.bmi>30)s+=2;else if(p.bmi>25)s+=1;if(p.age>55)s+=2;else if(p.age>40)s+=1;if(p.chol>230)s+=2;else if(p.chol>200)s+=1;return s>=6?'HIGH':s>=3?'MEDIUM':'LOW';}
+function riskBadge(r){return r==='HIGH'?'<span class="badge badge-high">HIGH</span>':r==='MEDIUM'?'<span class="badge badge-medium">MEDIUM</span>':'<span class="badge badge-low">LOW</span>';}
+function ini(p){return((p.first||'?')[0]+(p.last||'?')[0]).toUpperCase();}
+function avc(r){return r==='HIGH'?'background:var(--red-bg);color:var(--red)':r==='MEDIUM'?'background:var(--amber-bg);color:var(--amber)':'background:var(--green-bg);color:var(--green)';}
+function mlPredictForPatient(p){
+  if(!scalerParams.mean||!Object.keys(trainedModels).length)return'<span style="font-size:10px;color:var(--ink3);">—</span>';
+  const raw=[0,p.glucose||120,p.bp||72,0,0,p.bmi||25,0.5,p.age||40];
+  const scaled=scaleRow(raw,scalerParams.mean,scalerParams.std);
+  const m=trainedModels.rf||trainedModels.lr||trainedModels.dt||Object.values(trainedModels)[0];
+  const prob=m.model.predictProba(scaled);
+  const c=prob>=0.5?'var(--red)':prob>=0.35?'var(--amber)':'var(--green)';
+  return`<span style="font-size:11px;font-weight:600;color:${c}">${(prob*100).toFixed(0)}% ${prob>=0.5?'⚠':'✓'}</span>`;
+}
+function renderPatients(){
+  const p=loadPatients();document.getElementById('patient-count').textContent=p.length;document.getElementById('stat-patients').textContent=p.length.toLocaleString();
+  const tb=document.getElementById('patient-tbody');
+  if(!p.length){tb.innerHTML='<tr><td colspan="11"><div class="empty-state"><p>No patients yet.</p></div></td></tr>';return;}
+  tb.innerHTML=p.map(x=>{const r=calcRisk(x);return`<tr><td><div style="display:flex;align-items:center;gap:8px"><div class="avatar" style="${avc(r)}">${ini(x)}</div><span style="font-weight:500">${x.first} ${x.last}</span></div></td><td>${x.age||'—'}</td><td>${x.gender||'—'}</td><td>${x.bp?x.bp+' mmHg':'—'}</td><td>${x.glucose?x.glucose+' mg/dL':'—'}</td><td>${x.bmi||'—'}</td><td>${x.chol?x.chol+' mg/dL':'—'}</td><td>${x.condition||'—'}</td><td>${riskBadge(r)}</td><td>${mlPredictForPatient(x)}</td><td><div style="display:flex;gap:6px"><button class="btn btn-outline btn-sm" onclick="editPatient('${x.id}')">Edit</button><button class="btn btn-danger btn-sm" onclick="deletePatient('${x.id}')">Del</button></div></td></tr>`;}).join('');
+}
+function renderRiskList(){const high=loadPatients().filter(p=>calcRisk(p)!=='LOW').sort((a,b)=>({HIGH:0,MEDIUM:1,LOW:2}[calcRisk(a)]-{HIGH:0,MEDIUM:1,LOW:2}[calcRisk(b)])).slice(0,5);const el=document.getElementById('risk-list');if(!high.length){el.innerHTML='<div class="empty-state"><p>No high-risk patients found.</p></div>';return;}el.innerHTML=high.map(p=>{const r=calcRisk(p);return`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)"><div class="avatar" style="${avc(r)}">${ini(p)}</div><div><div style="font-size:13px;font-weight:500">${p.first} ${p.last}</div><div style="font-size:11px;color:var(--ink3)">${p.condition||'No condition'} · BMI ${p.bmi||'?'} · Glucose ${p.glucose||'?'}</div></div>${riskBadge(r)}</div>`;}).join('');}
+function savePatient(){const first=document.getElementById('f-first').value.trim(),last=document.getElementById('f-last').value.trim();if(!first||!last){showToast('Please enter first and last name.');return;}const pts=loadPatients(),id=document.getElementById('f-id').value||('p'+Date.now()),idx=pts.findIndex(p=>p.id===id);const pt={id,first,last,age:+document.getElementById('f-age').value||null,gender:document.getElementById('f-gender').value,bp:+document.getElementById('f-bp').value||null,glucose:+document.getElementById('f-glucose').value||null,hr:+document.getElementById('f-hr').value||null,bmi:+document.getElementById('f-bmi').value||null,chol:+document.getElementById('f-chol').value||null,condition:document.getElementById('f-condition').value};if(idx>=0){pts[idx]=pt;showToast(`Updated: ${first} ${last}`);}else{pts.push(pt);showToast(`Added: ${first} ${last}`);}savePatients(pts);clearForm();renderPatients();renderRiskList();refreshSimSelect();}
+function clearForm(){['f-id','f-first','f-last','f-age','f-bp','f-glucose','f-hr','f-bmi','f-chol'].forEach(id=>document.getElementById(id).value='');document.getElementById('f-gender').value='';document.getElementById('f-condition').value='';}
+function editPatient(id){const p=loadPatients().find(x=>x.id===id);if(!p)return;['id','first','last','age','bp','glucose','hr','bmi','chol'].forEach(k=>document.getElementById('f-'+k).value=p[k]||'');document.getElementById('f-gender').value=p.gender||'';document.getElementById('f-condition').value=p.condition||'';showPage('patients');window.scrollTo({top:0,behavior:'smooth'});}
+function deletePatient(id){savePatients(loadPatients().filter(p=>p.id!==id));renderPatients();renderRiskList();refreshSimSelect();showToast('Patient removed.');}
+function refreshSimSelect(){const sel=document.getElementById('sim-patient-select');sel.innerHTML='<option value="">— Select a patient or enter manually —</option>';loadPatients().forEach(p=>{sel.innerHTML+=`<option value="${p.id}">${p.first} ${p.last} (Age ${p.age||'?'})</option>`;});}
+function loadPatientIntoSim(){const p=loadPatients().find(x=>x.id===document.getElementById('sim-patient-select').value);if(!p)return;document.getElementById('s-name').value=p.first+' '+p.last;if(p.glucose)document.getElementById('s-glucose').value=p.glucose;if(p.bp)document.getElementById('s-bp').value=p.bp;if(p.bmi)document.getElementById('s-bmi').value=p.bmi;if(p.age)document.getElementById('s-age').value=p.age;}
+
+// ============================================================
+// NAV / PAGE
+// ============================================================
+window.addEventListener('scroll',()=>document.getElementById('main-nav').classList.toggle('scrolled',window.scrollY>10));
+function animateCards(pageId){document.querySelectorAll(`#${pageId} .card,#${pageId} .stat-box,#${pageId} .feat-card,#${pageId} .patient-form`).forEach((el,i)=>{el.style.opacity='0';el.style.transform='translateY(16px)';setTimeout(()=>{el.style.transition='opacity .35s ease,transform .35s ease';el.style.opacity='1';el.style.transform='translateY(0)';},60+i*55);});}
+function showPage(name){document.querySelectorAll('.tab-panel').forEach(p=>{p.style.display='none';p.classList.remove('active');});document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));const panel=document.getElementById('page-'+name);panel.style.display='block';setTimeout(()=>{panel.classList.add('active');animateCards('page-'+name);},10);const btns=document.querySelectorAll('.nav-btn'),map={dashboard:0,patients:1,simulator:2,mllab:3,models:4};if(btns[map[name]])btns[map[name]].classList.add('active');if(name==='mllab'&&!dsDistChartInst){setTimeout(initCharts,100);}}
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3200);}
+</script>
+
+<!-- DARK PARTICLE CANVAS WALLPAPER -->
+<script>
+(function(){
+  const canvas=document.getElementById('bg-canvas');
+  const ctx=canvas.getContext('2d');
+  let W,H,particles=[],hexagons=[],dnaNodes=[],shootingStars=[];
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+  resize();window.addEventListener('resize',()=>{resize();init();});
+  const COLORS=['rgba(96,165,250,','rgba(167,139,250,','rgba(52,211,153,','rgba(251,191,36,','rgba(244,114,182,','rgba(34,211,238,'];
+  function mkParticle(){const c=COLORS[Math.floor(Math.random()*COLORS.length)];return{x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.8+0.3,vx:(Math.random()-0.5)*0.35,vy:(Math.random()-0.5)*0.35,color:c,alpha:Math.random()*0.6+0.2,pulse:Math.random()*Math.PI*2,pulseSpeed:Math.random()*0.025+0.008};}
+  function mkDNA(){const nodes=[];for(let i=0;i<20;i++)nodes.push({idx:i,t:i/20*Math.PI*4,speed:0.007+Math.random()*0.003,baseY:H*0.05+i*(H*0.9/20)});return nodes;}
+  function mkHex(){return{x:Math.random()*W,y:Math.random()*H,size:Math.random()*22+8,vx:(Math.random()-0.5)*0.2,vy:(Math.random()-0.5)*0.2,rot:Math.random()*Math.PI*2,rotV:(Math.random()-0.5)*0.006,color:COLORS[Math.floor(Math.random()*COLORS.length)],alpha:0.06+Math.random()*0.07};}
+  function mkStar(){return{x:Math.random()*W*0.5,y:Math.random()*H*0.5,vx:3+Math.random()*5,vy:1+Math.random()*2,len:60+Math.random()*80,alpha:0.7,life:1};}
+  function init(){particles=Array.from({length:130},mkParticle);dnaNodes=mkDNA();hexagons=Array.from({length:28},mkHex);shootingStars=[];}
+  init();
+  function drawHex(x,y,size,rot,color,alpha){ctx.save();ctx.translate(x,y);ctx.rotate(rot);ctx.beginPath();for(let i=0;i<6;i++){const a=Math.PI/3*i;ctx.lineTo(Math.cos(a)*size,Math.sin(a)*size);}ctx.closePath();ctx.strokeStyle=color+alpha+')';ctx.lineWidth=0.8;ctx.stroke();ctx.restore();}
+  function drawConnections(){for(let i=0;i<particles.length;i++){for(let j=i+1;j<particles.length;j++){const dx=particles[i].x-particles[j].x,dy=particles[i].y-particles[j].y;const dist=Math.sqrt(dx*dx+dy*dy);if(dist<110){ctx.beginPath();ctx.moveTo(particles[i].x,particles[i].y);ctx.lineTo(particles[j].x,particles[j].y);const a=(1-dist/110)*0.12;ctx.strokeStyle=`rgba(96,165,250,${a})`;ctx.lineWidth=0.5;ctx.stroke();}}}}
+  let frame=0;
+  function draw(){
+    ctx.clearRect(0,0,W,H);frame++;
+    if(Math.random()<0.008)shootingStars.push(mkStar());
+    shootingStars=shootingStars.filter(s=>s.alpha>0);
+    shootingStars.forEach(s=>{ctx.beginPath();ctx.moveTo(s.x,s.y);ctx.lineTo(s.x-s.len,s.y-s.len*0.3);const g=ctx.createLinearGradient(s.x,s.y,s.x-s.len,s.y-s.len*0.3);g.addColorStop(0,`rgba(255,255,255,${s.alpha})`);g.addColorStop(1,'rgba(255,255,255,0)');ctx.strokeStyle=g;ctx.lineWidth=1.5;ctx.stroke();s.x+=s.vx;s.y+=s.vy;s.alpha-=0.025;});
+    hexagons.forEach(h=>{h.x+=h.vx;h.y+=h.vy;h.rot+=h.rotV;if(h.x<-60)h.x=W+60;if(h.x>W+60)h.x=-60;if(h.y<-60)h.y=H+60;if(h.y>H+60)h.y=-60;drawHex(h.x,h.y,h.size,h.rot,h.color,h.alpha);});
+    drawConnections();
+    particles.forEach(p=>{p.x+=p.vx;p.y+=p.vy;p.pulse+=p.pulseSpeed;if(p.x<0)p.x=W;if(p.x>W)p.x=0;if(p.y<0)p.y=H;if(p.y>H)p.y=0;const a=p.alpha*(0.6+0.4*Math.sin(p.pulse));const g=ctx.createRadialGradient(p.x,p.y,0,p.x,p.y,p.r*4);g.addColorStop(0,p.color+a+')');g.addColorStop(1,p.color+'0)');ctx.beginPath();ctx.arc(p.x,p.y,p.r*4,0,Math.PI*2);ctx.fillStyle=g;ctx.fill();ctx.beginPath();ctx.arc(p.x,p.y,p.r,0,Math.PI*2);ctx.fillStyle=p.color+a+')';ctx.fill();});
+    const cx=W*0.88;
+    for(let i=0;i<dnaNodes.length-1;i++){const n=dnaNodes[i],n2=dnaNodes[i+1];n.t+=n.speed;n2.t+=n2.speed;const x1=cx+Math.cos(n.t)*36,y1=n.baseY;const x2=cx-Math.cos(n.t)*36,y2=n.baseY;const nx1=cx+Math.cos(n2.t)*36,ny1=n2.baseY;const nx2=cx-Math.cos(n2.t)*36,ny2=n2.baseY;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(nx1,ny1);ctx.strokeStyle='rgba(96,165,250,0.25)';ctx.lineWidth=1.5;ctx.stroke();ctx.beginPath();ctx.moveTo(x2,y2);ctx.lineTo(nx2,ny2);ctx.strokeStyle='rgba(167,139,250,0.25)';ctx.lineWidth=1.5;ctx.stroke();if(i%2===0){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle='rgba(52,211,153,0.18)';ctx.lineWidth=0.8;ctx.stroke();[[x1,y1,'rgba(96,165,250,'],[x2,y2,'rgba(167,139,250,']].forEach(([px,py,col])=>{const ng=ctx.createRadialGradient(px,py,0,px,py,6);ng.addColorStop(0,col+'0.7)');ng.addColorStop(1,col+'0)');ctx.beginPath();ctx.arc(px,py,6,0,Math.PI*2);ctx.fillStyle=ng;ctx.fill();ctx.beginPath();ctx.arc(px,py,2,0,Math.PI*2);ctx.fillStyle=col+'0.9)';ctx.fill();});}}
+    const hbY=H*0.9;ctx.beginPath();const peak=Math.floor((frame*0.4)%W);for(let x=0;x<W;x+=2){let y=hbY;const dx2=x-peak;if(Math.abs(dx2)<5)y=hbY-50;else if(Math.abs(dx2)<10)y=hbY+18;else if(Math.abs(dx2)<18)y=hbY-12;else if(Math.abs(dx2)<80)y=hbY+Math.sin(dx2*0.12)*3;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}const hbg=ctx.createLinearGradient(0,0,W,0);hbg.addColorStop(0,'rgba(248,113,113,0)');hbg.addColorStop((peak-40)/W,'rgba(248,113,113,0)');hbg.addColorStop(peak/W,'rgba(248,113,113,0.5)');hbg.addColorStop(Math.min(1,(peak+40)/W),'rgba(248,113,113,0)');hbg.addColorStop(1,'rgba(248,113,113,0)');ctx.strokeStyle=hbg;ctx.lineWidth=1.8;ctx.stroke();
+    requestAnimationFrame(draw);
+  }
+  draw();
+})();
+</script>
+</body>
+</html>
